@@ -2,118 +2,912 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>ACIAPAR — Scanner &amp; Sorteador</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🎰 SORTEADOR ACIAPAR</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Exo+2:wght@400;700;900&family=Share+Tech+Mono&display=swap');
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  :root {
-    --bg:#07080f; --panel:#0d1117; --border:#0d2040;
-    --neon:#0073ff; --text:#c8d8f0; --dim:#3a4a6a;
-    --sc-v:#00A0E3; --sc-b:rgba(0,160,227,0.22);
-    --sc-bg:#0a141a; --sc-s:#111e26; --sc-s2:#172330;
-    --sc-t:#e0f4fd; --sc-t2:#7dd4f5;
-  }
-  body { background:var(--bg); color:var(--text); font-family:'Share Tech Mono',monospace; min-height:100vh; }
-  body::before { content:''; position:fixed; inset:0; background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.03) 2px,rgba(0,0,0,0.03) 4px); pointer-events:none; z-index:9999; }
 
-  /* ── SCANNER ── */
-  .sc-section { background:var(--sc-bg); display:flex; flex-direction:column; align-items:center; }
-  .sc-header { width:100%; background:var(--sc-s); border-bottom:1px solid var(--sc-b); padding:14px 20px 18px; display:flex; flex-direction:column; align-items:center; gap:2px; position:sticky; top:0; z-index:100; }
-  .sc-logo { font-size:11px; letter-spacing:.18em; color:var(--sc-t2); text-transform:uppercase; }
-  .sc-cnt  { font-size:52px; font-weight:900; color:var(--sc-v); letter-spacing:-1px; line-height:1; font-family:'Exo 2',sans-serif; }
-  .sc-cnt-label { font-size:11px; color:var(--sc-t2); letter-spacing:.12em; text-transform:uppercase; }
-  .sc-main { width:100%; max-width:480px; padding:16px; display:flex; flex-direction:column; gap:14px; }
-  .sc-camera-wrap { position:relative; width:100%; aspect-ratio:1; background:#000; border-radius:12px; overflow:hidden; border:1px solid var(--sc-b); }
-  #sc-video { width:100%; height:100%; object-fit:cover; display:block; }
-  .sc-overlay { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; pointer-events:none; }
-  .sc-frame { width:70%; aspect-ratio:3; border:2px solid var(--sc-v); border-radius:4px; position:relative; box-shadow:0 0 0 9999px rgba(0,0,0,0.45); }
-  .sc-line { position:absolute; top:0; left:0; right:0; height:2px; background:var(--sc-v); animation:sc-scan 1.8s linear infinite; }
+  :root {
+    --neon: #0073ff;
+    --neon2: #ff4466;
+    --bg: #07080f;
+    --panel: #0e0f1e;
+    --panel2: #12132a;
+    --border: #1a2a4a;
+    --text: #c8cae8;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Exo 2', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Scanlines overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0,115,255,0.012) 2px,
+      rgba(0,115,255,0.012) 4px
+    );
+    pointer-events: none;
+    z-index: 9999;
+  }
+
+  /* Stars background */
+  body::after {
+    content: '';
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background-image:
+      radial-gradient(1px 1px at 20% 30%, rgba(255,255,255,0.15), transparent),
+      radial-gradient(1px 1px at 80% 10%, rgba(255,255,255,0.1), transparent),
+      radial-gradient(1px 1px at 50% 60%, rgba(255,255,255,0.12), transparent),
+      radial-gradient(1px 1px at 10% 80%, rgba(255,255,255,0.08), transparent),
+      radial-gradient(1px 1px at 90% 70%, rgba(255,255,255,0.1), transparent);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  header {
+    position: relative;
+    z-index: 1;
+    padding: 20px 30px 15px;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    border-bottom: 1px solid var(--border);
+    background: linear-gradient(180deg, rgba(0,115,255,0.06), transparent);
+  }
+
+  header h1 {
+    font-size: 1.8rem;
+    font-weight: 900;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: white;
+  }
+
+  header h1 span {
+    color: var(--neon);
+    text-shadow: 0 0 20px var(--neon);
+  }
+
+  header p {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.75rem;
+    color: #444;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+
+  .version-badge {
+    margin-left: auto;
+    background: rgba(0,115,255,0.12);
+    border: 1px solid rgba(0,115,255,0.35);
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.7rem;
+    color: var(--neon);
+    font-family: 'Share Tech Mono', monospace;
+    letter-spacing: 1px;
+  }
+
+  .container {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 20px;
+    padding: 20px 30px 20px 50px;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  /* ── Hover-reveal floating sidebar ──────────────────────────────── */
+  .sidebar-wrapper {
+    position: fixed;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    z-index: 200;
+    pointer-events: none;
+  }
+
+  /* The actual panel drawer — hidden off-screen to the left */
+  .sidebar {
+    pointer-events: all;
+    position: fixed;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: 280px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 14px 12px;
+    background: rgba(8, 9, 22, 0.98);
+    border-right: 1px solid var(--border);
+    border-radius: 0 12px 12px 0;
+    box-shadow: 6px 0 40px rgba(0,0,0,0.7), inset -1px 0 0 rgba(0,115,255,0.08);
+    backdrop-filter: blur(16px);
+    transform: translateX(-100%);
+    transition: transform 0.38s cubic-bezier(0.4, 0, 0.2, 1),
+                box-shadow 0.25s ease;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+    z-index: 200;
+  }
+
+  .sidebar.open {
+    transform: translateX(0);
+    box-shadow: 8px 0 60px rgba(0,0,0,0.8), 0 0 40px rgba(0,115,255,0.12);
+  }
+
+  .sidebar::-webkit-scrollbar { width: 3px; }
+  .sidebar::-webkit-scrollbar-track { background: transparent; }
+  .sidebar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  /* ── Tab: always pinned hard to left:0, vertically centered ── */
+  .sidebar-tab {
+    position: fixed;
+    left: 0;                    /* exactly at viewport left edge */
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 300;               /* above sidebar */
+    width: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    padding: 24px 0;
+    background: rgba(8, 9, 26, 0.96);
+    border: 1px solid var(--border);
+    border-left: none;
+    border-radius: 0 10px 10px 0;
+    cursor: pointer;
+    transition: background 0.2s ease, border-color 0.2s ease,
+                width 0.22s ease, box-shadow 0.2s ease;
+    box-shadow: 3px 0 18px rgba(0,0,0,0.55);
+    /* Reset button defaults */
+    appearance: none;
+    -webkit-appearance: none;
+    font-family: inherit;
+  }
+
+  .sidebar-tab:hover,
+  .sidebar-tab.active {
+    background: rgba(0, 115, 255, 0.14);
+    border-color: rgba(0, 115, 255, 0.55);
+    width: 26px;
+    box-shadow: 3px 0 28px rgba(0,115,255,0.3);
+  }
+
+  /* Blue left-edge accent stripe */
+  .sidebar-tab::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 22%; bottom: 22%;
+    width: 2.5px;
+    background: linear-gradient(180deg, transparent, var(--neon), transparent);
+    border-radius: 0 2px 2px 0;
+    opacity: 0.8;
+    transition: top 0.2s, bottom 0.2s, opacity 0.2s;
+  }
+
+  .sidebar-tab:hover::before,
+  .sidebar-tab.active::before {
+    top: 10%; bottom: 10%;
+    opacity: 1;
+  }
+
+  .sidebar-tab .tab-icon {
+    font-size: 0.78rem;
+    color: rgba(0,115,255,0.65);
+    transition: color 0.2s, transform 0.2s;
+    line-height: 1;
+  }
+
+  .sidebar-tab:hover .tab-icon,
+  .sidebar-tab.active .tab-icon {
+    color: #4da6ff;
+    transform: scale(1.2);
+  }
+
+  .sidebar-tab .tab-label {
+    writing-mode: vertical-lr;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.46rem;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: rgba(0,115,255,0.4);
+    transition: color 0.2s;
+    user-select: none;
+  }
+
+  .sidebar-tab:hover .tab-label,
+  .sidebar-tab.active .tab-label {
+    color: rgba(0,160,255,0.9);
+  }
+
+  /* Blue accent line at top of sidebar panel */
+  .sidebar::before {
+    content: '';
+    display: block;
+    flex-shrink: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--neon), transparent);
+    border-radius: 1px;
+    margin: -2px -12px 10px;
+    opacity: 0.6;
+  }
+
+  /* ── Main area takes full width now ──────────────────────────────── */
+  .main {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    width: 100%;
+  }
+
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+  }
+
+  .panel-label {
+    font-size: 0.65rem;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: #445;
+    font-family: 'Share Tech Mono', monospace;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .upload-area {
+    border: 2px dashed var(--border);
+    border-radius: 6px;
+    padding: 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .upload-area:hover, .upload-area.drag-over {
+    border-color: var(--neon);
+    background: rgba(0,115,255,0.05);
+  }
+
+  .upload-area .icon {
+    font-size: 2rem;
+    display: block;
+    margin-bottom: 8px;
+  }
+
+  .upload-area p {
+    font-size: 0.75rem;
+    color: #555;
+    line-height: 1.5;
+  }
+
+  .upload-area strong {
+    color: var(--neon);
+    display: block;
+    margin-top: 4px;
+    font-size: 0.8rem;
+  }
+
+  .file-status {
+    margin-top: 8px;
+    font-size: 0.75rem;
+    color: #444;
+    font-family: 'Share Tech Mono', monospace;
+    word-break: break-all;
+  }
+
+  .file-status.loaded { color: var(--neon); }
+
+  select, .col-select {
+    width: 100%;
+    background: var(--panel2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--text);
+    padding: 8px 10px;
+    font-family: 'Exo 2', sans-serif;
+    font-size: 0.85rem;
+    outline: none;
+    cursor: pointer;
+    transition: border-color 0.2s;
+  }
+
+  select:focus { border-color: var(--neon); }
+
+  .stat-big {
+    font-size: 2.5rem;
+    font-weight: 900;
+    color: var(--neon);
+    text-shadow: 0 0 20px var(--neon);
+    text-align: center;
+    font-family: 'Share Tech Mono', monospace;
+  }
+
+  .stat-label {
+    text-align: center;
+    font-size: 0.7rem;
+    color: #444;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-top: 2px;
+  }
+
+  label.checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.8rem;
+    color: #666;
+    cursor: pointer;
+  }
+
+  input[type="checkbox"] {
+    accent-color: var(--neon);
+    width: 14px; height: 14px;
+  }
+
+  .range-wrap {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  input[type="range"] {
+    flex: 1;
+    accent-color: var(--neon);
+    cursor: pointer;
+  }
+
+  .range-val {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.9rem;
+    color: var(--neon);
+    min-width: 20px;
+    text-align: right;
+  }
+
+  .sound-status {
+    margin-top: 8px;
+    font-size: 0.72rem;
+    font-family: 'Share Tech Mono', monospace;
+    color: #444;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .sound-status.ok { color: var(--neon); }
+  .sound-status.err { color: #ff5555; }
+
+  .sound-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: #333;
+    flex-shrink: 0;
+    transition: background 0.3s;
+  }
+
+  .sound-dot.ok { background: var(--neon); box-shadow: 0 0 6px var(--neon); }
+  .sound-dot.err { background: #ff5555; }
+  .sound-dot.pulse {
+    animation: soundPulse 0.4s ease infinite alternate;
+  }
+
+  @keyframes soundPulse {
+    from { transform: scale(1); opacity: 1; }
+    to { transform: scale(1.6); opacity: 0.5; }
+  }
+
+  .btn-sound-file {
+    width: 100%;
+    padding: 7px;
+    background: rgba(0,115,255,0.08);
+    border: 1px solid rgba(0,115,255,0.25);
+    border-radius: 4px;
+    color: var(--neon);
+    font-family: 'Exo 2', sans-serif;
+    font-size: 0.78rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 1px;
+    margin-bottom: 8px;
+  }
+
+  .btn-sound-file:hover {
+    background: rgba(0,115,255,0.16);
+    border-color: var(--neon);
+  }
+
+  .btn-clear {
+    width: 100%;
+    padding: 8px;
+    background: rgba(255,50,50,0.08);
+    border: 1px solid rgba(255,50,50,0.2);
+    border-radius: 4px;
+    color: #ff5555;
+    font-family: 'Exo 2', sans-serif;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 1px;
+  }
+
+  .btn-clear:hover {
+    background: rgba(255,50,50,0.15);
+    border-color: #ff5555;
+  }
+
+  /* MAIN AREA */
+  .main {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .roulette-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    padding: 24px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+  }
+
+  #rouletteCanvas {
+    display: block;
+    filter: drop-shadow(0 0 30px rgba(0,115,255,0.25));
+  }
+
+  .btn-sortear {
+    position: relative;
+    padding: 16px 60px;
+    background: linear-gradient(135deg, #0073ff, #0052cc);
+    border: none;
+    border-radius: 6px;
+    color: #ffffff;
+    font-family: 'Exo 2', sans-serif;
+    font-weight: 900;
+    font-size: 1.1rem;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.2s;
+    overflow: hidden;
+    box-shadow: 0 0 30px rgba(0,115,255,0.35), 0 4px 15px rgba(0,0,0,0.3);
+  }
+
+  .btn-sortear::before {
+    content: '';
+    position: absolute;
+    top: 0; left: -100%;
+    width: 100%; height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.25), transparent);
+    transition: left 0.4s;
+  }
+
+  .btn-sortear:hover:not(:disabled)::before { left: 100%; }
+
+  .btn-sortear:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 0 50px rgba(0,115,255,0.55), 0 6px 20px rgba(0,0,0,0.4);
+  }
+
+  .btn-sortear:disabled {
+    background: #1a1a2a;
+    color: #333;
+    cursor: not-allowed;
+    box-shadow: none;
+  }
+
+  /* ── RESULT PANEL — destaque máximo ───────────────────────────────── */
+  .result-panel {
+    position: relative;
+    background: linear-gradient(135deg, #050e22 0%, #0a1530 50%, #060d1e 100%);
+    border: 2px solid rgba(0,115,255,0.5);
+    border-radius: 12px;
+    padding: 24px 28px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    min-height: 100px;
+    overflow: hidden;
+    box-shadow:
+      0 0 0 1px rgba(0,115,255,0.15),
+      0 0 40px rgba(0,115,255,0.18),
+      inset 0 1px 0 rgba(255,255,255,0.06);
+  }
+
+  /* Animated glow line at top */
+  .result-panel::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, #0073ff, #66aaff, #0073ff, transparent);
+    background-size: 200% 100%;
+    animation: shimmerLine 2.5s linear infinite;
+  }
+
+  /* Corner accent glow */
+  .result-panel::after {
+    content: '';
+    position: absolute;
+    top: -40px; right: -40px;
+    width: 120px; height: 120px;
+    background: radial-gradient(circle, rgba(0,115,255,0.18) 0%, transparent 70%);
+    border-radius: 50%;
+    pointer-events: none;
+  }
+
+  @keyframes shimmerLine {
+    0%   { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+
+  .result-icon {
+    font-size: 2.6rem;
+    flex-shrink: 0;
+    filter: drop-shadow(0 0 10px rgba(255,200,0,0.5));
+  }
+
+  .result-content { flex: 1; }
+
+  .result-label {
+    font-size: 0.6rem;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    color: rgba(0,115,255,0.7);
+    font-family: 'Share Tech Mono', monospace;
+    margin-bottom: 8px;
+  }
+
+  #resultText {
+    font-size: 1.7rem;
+    font-weight: 900;
+    color: rgba(255,255,255,0.75);
+    transition: all 0.4s ease;
+    line-height: 1.2;
+    letter-spacing: 1px;
+  }
+
+  #resultText.active {
+    color: #ffffff;
+    text-shadow:
+      0 0 20px rgba(0,115,255,0.9),
+      0 0 40px rgba(0,115,255,0.5),
+      0 2px 4px rgba(0,0,0,0.6);
+  }
+
+  /* ─────────────────────────────────────────────────────────────────── */
+
+  .history-panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    flex: 1;
+    overflow: hidden;
+  }
+
+  .history-header {
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .history-header span {
+    font-size: 0.65rem;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: #445;
+    font-family: 'Share Tech Mono', monospace;
+  }
+
+  .history-count {
+    background: rgba(0,115,255,0.12);
+    border: 1px solid rgba(0,115,255,0.25);
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 0.7rem;
+    color: var(--neon);
+    font-family: 'Share Tech Mono', monospace;
+  }
+
+  #historyList {
+    max-height: 140px;
+    overflow-y: auto;
+    padding: 8px;
+  }
+
+  #historyList::-webkit-scrollbar { width: 4px; }
+  #historyList::-webkit-scrollbar-track { background: transparent; }
+  #historyList::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .history-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 8px;
+    border-radius: 4px;
+    font-size: 0.82rem;
+    animation: slideIn 0.3s ease;
+    border-bottom: 1px solid rgba(255,255,255,0.03);
+  }
+
+  .history-item:first-child {
+    background: rgba(0,115,255,0.07);
+    border: 1px solid rgba(0,115,255,0.18);
+    margin-bottom: 4px;
+  }
+
+  .history-item .num {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.7rem;
+    color: #445;
+    min-width: 24px;
+  }
+
+  .history-item .time {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.7rem;
+    color: #445;
+    min-width: 60px;
+  }
+
+  .history-item .name { color: var(--text); flex: 1; }
+
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateX(-10px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+
+  .empty-hint {
+    text-align: center;
+    padding: 20px;
+    color: #334;
+    font-size: 0.8rem;
+    font-style: italic;
+  }
+
+  /* Glow animation durante sorteio */
+  @keyframes rouletteGlow {
+    0%, 100% { filter: drop-shadow(0 0 20px rgba(0,115,255,0.25)); }
+    50% { filter: drop-shadow(0 0 60px rgba(0,115,255,0.65)) drop-shadow(0 0 20px rgba(0,160,255,0.3)); }
+  }
+
+  #rouletteCanvas.spinning {
+    animation: rouletteGlow 0.5s ease infinite;
+  }
+  
+  /* Sidebar e tab são position:fixed — controlados via classe no body */
+  .sidebar-wrapper { display: none !important; }
+  .sidebar-tab     { display: none !important; }
+  body.sorteador-ativo .sidebar-wrapper { display: block !important; }
+  body.sorteador-ativo .sidebar-tab     { display: flex !important; }
+
+  /* ── TELA INICIAL ─────────────────────────────────────────────────── */
+  #tela-home {
+    position: fixed;
+    inset: 0;
+    z-index: 9000;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg);
+    transition: opacity 0.4s ease, transform 0.4s ease;
+  }
+  #tela-home.saindo {
+    opacity: 0;
+    transform: scale(0.97);
+    pointer-events: none;
+  }
+  .home-logo {
+    font-family: 'Exo 2', sans-serif;
+    font-size: 2rem;
+    font-weight: 900;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    color: white;
+    margin-bottom: 4px;
+  }
+  .home-logo span { color: var(--neon); text-shadow: 0 0 24px var(--neon); }
+  .home-sub {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.7rem;
+    color: #445;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    margin-bottom: 56px;
+  }
+  .home-divider {
+    width: 220px;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--neon), transparent);
+    margin-bottom: 52px;
+    opacity: 0.35;
+  }
+  .home-btns {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    width: 280px;
+  }
+  .home-btn {
+    position: relative;
+    width: 100%;
+    padding: 22px 0;
+    border-radius: 8px;
+    border: 1px solid rgba(0,115,255,0.35);
+    background: rgba(0,115,255,0.07);
+    color: white;
+    font-family: 'Exo 2', sans-serif;
+    font-weight: 900;
+    font-size: 1.05rem;
+    letter-spacing: 5px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    overflow: hidden;
+  }
+  .home-btn::before {
+    content: '';
+    position: absolute;
+    top: 0; left: -100%;
+    width: 100%; height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.07), transparent);
+    transition: left 0.4s;
+  }
+  .home-btn:hover::before { left: 100%; }
+  .home-btn:hover {
+    background: rgba(0,115,255,0.16);
+    border-color: var(--neon);
+    box-shadow: 0 0 30px rgba(0,115,255,0.25), 0 0 60px rgba(0,115,255,0.08);
+    transform: translateY(-2px);
+  }
+  .home-btn:active { transform: translateY(0); }
+  .home-btn .btn-icon { display: block; font-size: 1.6rem; margin-bottom: 6px; }
+  .home-btn .btn-label {
+    display: block;
+    font-size: 0.62rem;
+    font-family: 'Share Tech Mono', monospace;
+    color: rgba(0,115,255,0.6);
+    letter-spacing: 3px;
+    margin-top: 3px;
+    font-weight: 400;
+  }
+  .btn-voltar {
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: #556;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 2px;
+    padding: 5px 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-transform: uppercase;
+    margin-right: 12px;
+  }
+  .btn-voltar:hover { border-color: rgba(0,115,255,0.5); color: var(--neon); }
+  #tela-app { display: none; }
+  #tela-app.visivel { display: block; }
+
+  /* ── TELA INGRESSOS / SCANNER ─────────────────────────────────────── */
+  #tela-ingressos { display: none; background: #0a141a; min-height: 100vh; flex-direction: column; align-items: center; overflow-x: hidden; }
+  #tela-ingressos.visivel { display: flex; }
+  .sc-header { width: 100%; background: #111e26; border-bottom: 1px solid rgba(0,160,227,0.22); padding: 14px 20px 18px; display: flex; flex-direction: column; align-items: center; gap: 2px; position: sticky; top: 0; z-index: 100; }
+  .sc-logo { font-size: 11px; letter-spacing: 0.18em; color: #7dd4f5; text-transform: uppercase; font-family: 'Share Tech Mono', monospace; }
+  .sc-cnt { font-size: 52px; font-weight: 900; color: #00A0E3; letter-spacing: -1px; line-height: 1; font-family: 'Exo 2', sans-serif; }
+  .sc-cnt-label { font-size: 11px; color: #7dd4f5; letter-spacing: 0.12em; text-transform: uppercase; font-family: 'Share Tech Mono', monospace; }
+  .sc-back { position: absolute; top: 14px; left: 16px; background: transparent; border: 1px solid rgba(0,160,227,0.25); border-radius: 6px; color: #556; font-family: 'Share Tech Mono', monospace; font-size: 0.65rem; letter-spacing: 2px; padding: 5px 10px; cursor: pointer; transition: all 0.2s; text-transform: uppercase; }
+  .sc-back:hover { border-color: #00A0E3; color: #00A0E3; }
+  .sc-main { width: 100%; max-width: 480px; padding: 16px; display: flex; flex-direction: column; gap: 14px; }
+  .sc-camera-wrap { position: relative; width: 100%; aspect-ratio: 1; background: #000; border-radius: 12px; overflow: hidden; border: 1px solid rgba(0,160,227,0.22); }
+  #sc-video { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .sc-overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; pointer-events: none; }
+  .sc-frame { width: 70%; aspect-ratio: 3; border: 2px solid #00A0E3; border-radius: 4px; position: relative; box-shadow: 0 0 0 9999px rgba(0,0,0,0.45); }
+  .sc-line { position: absolute; top: 0; left: 0; right: 0; height: 2px; background: #00A0E3; animation: sc-scan 1.8s linear infinite; }
   @keyframes sc-scan { 0%,100%{top:0} 50%{top:calc(100% - 2px)} }
-  .sc-cn { position:absolute; width:14px; height:14px; border-color:var(--sc-v); border-style:solid; }
+  .sc-cn { position: absolute; width: 14px; height: 14px; border-color: #00A0E3; border-style: solid; }
   .sc-tl{top:-2px;left:-2px;border-width:3px 0 0 3px;border-radius:3px 0 0 0}
   .sc-tr{top:-2px;right:-2px;border-width:3px 3px 0 0;border-radius:0 3px 0 0}
   .sc-bl{bottom:-2px;left:-2px;border-width:0 0 3px 3px;border-radius:0 0 0 3px}
   .sc-br{bottom:-2px;right:-2px;border-width:0 3px 3px 0;border-radius:0 0 3px 0}
-  .sc-hint { position:absolute; bottom:10px; left:0; right:0; text-align:center; font-size:11px; color:rgba(255,255,255,.55); letter-spacing:.08em; }
-  .sc-card { background:var(--sc-s); border:1px solid var(--sc-b); border-radius:12px; padding:14px; }
-  .sc-ctitle { font-size:11px; letter-spacing:.12em; color:var(--sc-v); text-transform:uppercase; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center; }
-  .sc-ctitle span { font-size:11px; color:#666; cursor:pointer; text-transform:none; letter-spacing:0; }
-  .sc-input { width:100%; background:var(--sc-s2); border:1px solid var(--sc-b); border-radius:8px; padding:10px 12px; color:var(--sc-t); font-family:'Share Tech Mono',monospace; font-size:14px; outline:none; }
-  .sc-input:focus { border-color:var(--sc-v); }
-  .sc-input::placeholder { color:#445; }
-  .sc-row { display:flex; gap:8px; }
-  .sc-row .sc-input { flex:1; }
-  .sc-btn { padding:11px 18px; border-radius:8px; border:none; font-family:'Exo 2',sans-serif; font-size:13px; letter-spacing:.08em; text-transform:uppercase; cursor:pointer; font-weight:bold; transition:all .15s; }
-  .sc-btn-v { background:var(--sc-v); color:#fff; }
-  .sc-btn-v:active { background:#0077aa; transform:scale(.97); }
-  .sc-btn-cancel { background:transparent; border:1px solid rgba(226,75,74,.5); color:#E24B4A; }
-  .sc-confirm-box { border-radius:12px; padding:16px; border:2px solid var(--sc-v); background:rgba(0,160,227,.07); animation:sc-fi .2s ease; }
-  .sc-confirm-num { font-size:36px; font-weight:bold; color:var(--sc-v); text-align:center; letter-spacing:.05em; margin:8px 0 4px; font-family:'Exo 2',sans-serif; }
-  .sc-confirm-label { text-align:center; font-size:12px; color:var(--sc-t2); letter-spacing:.1em; text-transform:uppercase; margin-bottom:16px; }
-  .sc-confirm-btns { display:flex; gap:10px; }
-  .sc-confirm-btns .sc-btn { flex:1; padding:13px; font-size:14px; }
-  .sc-res { border-radius:10px; padding:13px 15px; display:flex; align-items:center; gap:12px; animation:sc-fi .25s ease; }
+  .sc-hint { position: absolute; bottom: 10px; left: 0; right: 0; text-align: center; font-size: 11px; color: rgba(255,255,255,0.55); letter-spacing: 0.08em; font-family: 'Share Tech Mono', monospace; }
+  .sc-card { background: #111e26; border: 1px solid rgba(0,160,227,0.22); border-radius: 12px; padding: 14px; }
+  .sc-ctitle { font-size: 11px; letter-spacing: 0.12em; color: #00A0E3; text-transform: uppercase; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; font-family: 'Share Tech Mono', monospace; }
+  .sc-ctitle span { font-size: 11px; color: #666; cursor: pointer; text-transform: none; letter-spacing: 0; }
+  .sc-input { width: 100%; background: #172330; border: 1px solid rgba(0,160,227,0.22); border-radius: 8px; padding: 10px 12px; color: #e0f4fd; font-family: 'Share Tech Mono', monospace; font-size: 14px; outline: none; }
+  .sc-input:focus { border-color: #00A0E3; }
+  .sc-input::placeholder { color: #445; }
+  .sc-row { display: flex; gap: 8px; }
+  .sc-row .sc-input { flex: 1; }
+  .sc-btn { padding: 11px 18px; border-radius: 8px; border: none; font-family: 'Exo 2', sans-serif; font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer; font-weight: bold; transition: all 0.15s; }
+  .sc-btn-v { background: #00A0E3; color: #fff; }
+  .sc-btn-v:active { background: #0077aa; transform: scale(0.97); }
+  .sc-btn-cancel { background: transparent; border: 1px solid rgba(226,75,74,0.5); color: #E24B4A; }
+  .sc-btn-cancel:active { background: rgba(226,75,74,0.1); transform: scale(0.97); }
+  .sc-confirm-box { border-radius: 12px; padding: 16px; border: 2px solid #00A0E3; background: rgba(0,160,227,0.07); animation: sc-fi 0.2s ease; }
+  .sc-confirm-num { font-size: 36px; font-weight: bold; color: #00A0E3; text-align: center; letter-spacing: 0.05em; margin: 8px 0 4px; font-family: 'Exo 2', sans-serif; }
+  .sc-confirm-label { text-align: center; font-size: 12px; color: #7dd4f5; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 16px; font-family: 'Share Tech Mono', monospace; }
+  .sc-confirm-btns { display: flex; gap: 10px; }
+  .sc-confirm-btns .sc-btn { flex: 1; padding: 13px; font-size: 14px; }
+  .sc-res { border-radius: 10px; padding: 13px 15px; display: flex; align-items: center; gap: 12px; animation: sc-fi 0.25s ease; }
   @keyframes sc-fi { from{opacity:0;transform:translateY(-6px)} to{opacity:1;transform:translateY(0)} }
-  .sc-res.ok  { background:rgba(0,160,227,.1);  border:1px solid rgba(0,160,227,.35); }
-  .sc-res.err { background:rgba(226,75,74,.12); border:1px solid rgba(226,75,74,.3); }
-  .sc-res.avi { background:rgba(239,159,39,.12);border:1px solid rgba(239,159,39,.3); }
-  .sc-ri { font-size:22px; flex-shrink:0; }
-  .sc-rt strong { display:block; font-size:14px; margin-bottom:2px; color:var(--sc-t); }
-  .sc-rt span { font-size:12px; color:var(--sc-t2); }
-  .sc-hist { display:flex; flex-direction:column; gap:6px; max-height:200px; overflow-y:auto; }
-  .sc-hi { display:flex; align-items:center; justify-content:space-between; background:var(--sc-s2); border-radius:8px; padding:7px 11px; font-size:12px; color:var(--sc-t); }
-  .sc-hn { color:var(--sc-v); font-weight:bold; }
-  .sc-hh { color:#556; font-size:11px; }
-  .sc-hs { font-size:11px; padding:2px 8px; border-radius:20px; }
-  .sc-hs.ok  { background:rgba(0,160,227,.18); color:var(--sc-v); }
-  .sc-hs.err { background:rgba(226,75,74,.2);  color:#E24B4A; }
-  .sc-vazio { text-align:center; color:#556; font-size:12px; padding:16px 0; }
-  #sc-status { font-size:12px; color:var(--sc-t2); text-align:center; padding:6px 0; min-height:22px; }
+  .sc-res.ok  { background: rgba(0,160,227,0.1);  border: 1px solid rgba(0,160,227,0.35); }
+  .sc-res.err { background: rgba(226,75,74,0.12); border: 1px solid rgba(226,75,74,0.3); }
+  .sc-res.avi { background: rgba(239,159,39,0.12);border: 1px solid rgba(239,159,39,0.3); }
+  .sc-ri { font-size: 22px; flex-shrink: 0; }
+  .sc-rt strong { display: block; font-size: 14px; margin-bottom: 2px; color: #e0f4fd; }
+  .sc-rt span { font-size: 12px; color: #7dd4f5; }
+  .sc-hist { display: flex; flex-direction: column; gap: 6px; max-height: 200px; overflow-y: auto; }
+  .sc-hi { display: flex; align-items: center; justify-content: space-between; background: #172330; border-radius: 8px; padding: 7px 11px; font-size: 12px; font-family: 'Share Tech Mono', monospace; color: #e0f4fd; }
+  .sc-hn { color: #00A0E3; font-weight: bold; }
+  .sc-hh { color: #556; font-size: 11px; }
+  .sc-hs { font-size: 11px; padding: 2px 8px; border-radius: 20px; }
+  .sc-hs.ok  { background: rgba(0,160,227,0.18); color: #00A0E3; }
+  .sc-hs.err { background: rgba(226,75,74,0.2);  color: #E24B4A; }
+  .sc-vazio { text-align: center; color: #556; font-size: 12px; padding: 16px 0; font-family: 'Share Tech Mono', monospace; }
+  #sc-status { font-size: 12px; color: #7dd4f5; text-align: center; padding: 6px 0; min-height: 22px; font-family: 'Share Tech Mono', monospace; }
 
-  /* ── DIVIDER ── */
-  .section-divider { width:100%; height:2px; background:linear-gradient(90deg,transparent,#0073ff55,transparent); }
-
-  /* ── SORTEADOR ── */
-  .sort-section { display:flex; flex-direction:column; align-items:center; padding:0 16px 32px; background:var(--bg); }
-  .sort-header { width:100%; max-width:480px; padding:20px 0 12px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid var(--border); margin-bottom:16px; }
-  .sort-header h1 { font-family:'Exo 2',sans-serif; font-size:1.2rem; font-weight:900; letter-spacing:3px; text-transform:uppercase; color:#fff; }
-  .sort-header h1 span { color:var(--neon); }
-  .sort-header p { font-size:.6rem; color:var(--dim); letter-spacing:2px; text-transform:uppercase; margin-top:2px; }
-  .version-badge { font-size:.6rem; font-family:'Share Tech Mono',monospace; color:var(--dim); border:1px solid var(--border); border-radius:20px; padding:3px 10px; letter-spacing:1px; white-space:nowrap; }
-  .sort-counter { width:100%; max-width:480px; background:var(--panel); border:1px solid var(--border); border-radius:10px; padding:14px 20px; display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; }
-  .sort-counter-label { font-size:.65rem; letter-spacing:3px; text-transform:uppercase; color:var(--dim); }
-  .sort-counter-num { font-family:'Exo 2',sans-serif; font-size:2rem; font-weight:900; color:var(--neon); letter-spacing:-1px; line-height:1; }
-  .sort-counter-status { font-size:.6rem; color:var(--dim); margin-top:2px; letter-spacing:1px; }
-  .sort-counter-refresh { background:transparent; border:1px solid var(--border); border-radius:6px; color:var(--dim); font-family:'Share Tech Mono',monospace; font-size:.65rem; padding:6px 12px; cursor:pointer; transition:all .2s; letter-spacing:1px; }
-  .sort-counter-refresh:hover { border-color:var(--neon); color:var(--neon); }
-  .sort-main { width:100%; max-width:480px; display:flex; flex-direction:column; gap:16px; }
-  .roulette-wrap { display:flex; flex-direction:column; align-items:center; gap:16px; padding:24px; background:var(--panel); border:1px solid var(--border); border-radius:8px; }
-  #rouletteCanvas { display:block; filter:drop-shadow(0 0 30px rgba(0,115,255,.25)); max-width:100%; }
-  .btn-sortear { padding:14px 40px; font-family:'Exo 2',sans-serif; font-size:1rem; font-weight:900; letter-spacing:4px; text-transform:uppercase; color:#fff; background:linear-gradient(135deg,#0052cc,#0073ff); border:none; border-radius:6px; cursor:pointer; transition:all .2s; }
-  .btn-sortear:hover:not(:disabled) { box-shadow:0 0 24px rgba(0,115,255,.5); transform:translateY(-2px); }
-  .btn-sortear:disabled { opacity:.4; cursor:not-allowed; }
-  .result-panel { background:var(--panel); border:1px solid var(--border); border-radius:8px; padding:20px; display:flex; align-items:center; gap:16px; }
-  .result-icon { font-size:2rem; }
-  .result-label { font-size:.6rem; letter-spacing:3px; text-transform:uppercase; color:var(--dim); margin-bottom:6px; }
-  #resultText { font-family:'Exo 2',sans-serif; font-size:1.4rem; font-weight:900; color:var(--neon); letter-spacing:2px; }
-  .history-panel { background:var(--panel); border:1px solid var(--border); border-radius:8px; overflow:hidden; }
-  .history-header { display:flex; align-items:center; justify-content:space-between; padding:12px 16px; border-bottom:1px solid var(--border); font-size:.7rem; letter-spacing:2px; text-transform:uppercase; }
-  .history-count { background:var(--neon); color:#fff; font-family:'Exo 2',sans-serif; font-size:.75rem; font-weight:700; padding:2px 8px; border-radius:20px; }
-  #historyList { max-height:200px; overflow-y:auto; padding:8px; display:flex; flex-direction:column; gap:4px; }
-  .history-entry { display:flex; align-items:center; gap:10px; padding:8px 12px; background:rgba(0,115,255,.05); border:1px solid var(--border); border-radius:4px; }
-  .h-num { font-family:'Exo 2',sans-serif; font-weight:700; color:var(--neon); min-width:60px; }
-  .h-label { flex:1; font-size:.8rem; color:var(--text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .h-badge { font-size:.6rem; letter-spacing:1px; padding:2px 8px; border:1px solid var(--dim); border-radius:20px; color:var(--dim); white-space:nowrap; }
-  .h-badge.winner { border-color:gold; color:gold; }
-  .empty-hint { padding:20px; text-align:center; color:var(--dim); font-size:.75rem; letter-spacing:2px; }
 </style>
 </head>
 <body>
 
-<!-- SCANNER -->
-<section class="sc-section">
+<div id="tela-home">
+  <div class="home-logo">&#127920; <span>ACIAPAR</span></div>
+  <div class="home-sub">Sistema de Eventos</div>
+  <div class="home-divider"></div>
+  <div class="home-btns">
+    <button class="home-btn" onclick="irPara('ingressos')">
+      <span class="btn-icon">&#127903;&#65039;</span>
+      Ingressos
+      <span class="btn-label">Gestao de entradas</span>
+    </button>
+    <button class="home-btn" onclick="irPara('sorteador')">
+      <span class="btn-icon">&#127920;</span>
+      Sorteador
+      <span class="btn-label">Roleta de sorteio</span>
+    </button>
+  </div>
+</div>
+
+
+<div id="tela-ingressos">
   <div class="sc-header">
+    <button class="sc-back" onclick="voltarHomeDoScanner()">&#8592; Inicio</button>
     <div class="sc-logo">&#9642; Scanner de Presenca</div>
     <div class="sc-cnt" id="sc-cnt">0</div>
     <div class="sc-cnt-label">presencas registradas</div>
@@ -130,69 +924,150 @@
       </div>
       <div class="sc-hint">APONTE PARA O CODIGO DE BARRAS</div>
     </div>
-    <div id="sc-status">Iniciando camera...</div>
+    <div id="sc-status">Camera aguardando...</div>
     <button class="sc-btn sc-btn-v" id="sc-btn-retry" style="display:none;width:100%" onclick="scLigarCamera()">Tentar Novamente</button>
     <div id="sc-confirm-wrap" style="display:none"></div>
     <div id="sc-res-wrap"></div>
     <div class="sc-card">
       <div class="sc-ctitle">&#9632; Entrada Manual</div>
       <div class="sc-row">
-        <input type="text" class="sc-input" id="sc-inp" placeholder="Digite o numero (1-400)" inputmode="numeric" pattern="[0-9]*"/>
+        <input type="text" class="sc-input" id="sc-inp" placeholder="Digite o numero (1-400)" inputmode="numeric" pattern="[0-9]*" />
         <button class="sc-btn sc-btn-v" style="white-space:nowrap" onclick="scRegistrarManual()">OK</button>
       </div>
     </div>
     <div class="sc-card">
-      <div class="sc-ctitle">&#9632; Historico <span onclick="scLimpar()">limpar</span></div>
-      <div class="sc-hist" id="sc-hist"><div class="sc-vazio">Nenhum codigo lido ainda</div></div>
+      <div class="sc-ctitle">
+        &#9632; Historico
+        <span onclick="scLimpar()">limpar</span>
+      </div>
+      <div class="sc-hist" id="sc-hist">
+        <div class="sc-vazio">Nenhum codigo lido ainda</div>
+      </div>
     </div>
-    <div style="height:8px"></div>
+    <div style="height:16px"></div>
   </div>
-</section>
+</div>
 
-<div class="section-divider"></div>
+<script>
+function irPara(tela) {
+  var home = document.getElementById('tela-home');
+  home.classList.add('saindo');
+  setTimeout(function() {
+    home.style.display = 'none';
+    if (tela === 'sorteador') {
+      document.getElementById('tela-app').classList.add('visivel');
+      document.body.classList.add('sorteador-ativo');
+      if (typeof carregarPresentes === 'function') carregarPresentes();
+    } else if (tela === 'ingressos') {
+      document.getElementById('tela-ingressos').classList.add('visivel');
+      if (typeof scHistorico !== 'undefined') scHistorico = JSON.parse(localStorage.getItem('sp_hist') || '[]');
+      if (typeof scRenderHist === 'function') scRenderHist();
+      if (typeof scAtualizarCnt === 'function') scAtualizarCnt();
+      if (typeof scLigarCamera === 'function') scLigarCamera();
+      if (typeof scAtualizarCnt === 'function') scIntervalId = setInterval(scAtualizarCnt, 30000);
+    }
+  }, 380);
+}
 
-<!-- SORTEADOR -->
-<section class="sort-section">
-  <div class="sort-header">
-    <div>
-      <h1>&#127920; <span>SORTEADOR</span> ACIAPAR</h1>
-      <p>Animacao de Roleta &middot; Selecao Aleatoria</p>
+function voltarHome() {
+  document.getElementById('tela-app').classList.remove('visivel');
+  document.body.classList.remove('sorteador-ativo');
+  var home = document.getElementById('tela-home');
+  home.style.display = 'flex';
+  home.classList.remove('saindo');
+}
+
+function voltarHomeDoScanner() {
+  if (typeof scPararCamera === 'function') scPararCamera();
+  if (typeof scIntervalId !== 'undefined' && scIntervalId) { clearInterval(scIntervalId); scIntervalId = null; }
+  document.getElementById('tela-ingressos').classList.remove('visivel');
+  var home = document.getElementById('tela-home');
+  home.style.display = 'flex';
+  home.classList.remove('saindo');
+}
+</script>
+
+<div id="tela-app">
+
+<header>
+  <div>
+    <h1>&#127920; <span>SORTEADOR</span> ACIAPAR</h1>
+    <p>Animação de Roleta · Seleção Aleatória</p>
+  </div>
+  <button class="btn-voltar" onclick="voltarHome()">← Inicio</button>
+  <span class="version-badge">v2.0 — HTML</span>
+</header>
+
+<div class="sidebar-wrapper">
+  <div class="sidebar">
+    
+      <select id="colSelect" disabled>
+        <option>— Carregue um arquivo —</option>
+      </select>
     </div>
-    <span class="version-badge">v2.0</span>
-  </div>
 
-  <div class="sort-counter">
-    <div>
-      <div class="sort-counter-label">Participantes disponiveis</div>
-      <div class="sort-counter-num" id="totalCount">—</div>
-      <div class="sort-counter-status" id="sheetsStatusText">Carregando...</div>
+    <div class="panel">
+      <div class="panel-label">🔗 Google Sheets</div>
+      <div class="stat-big" id="totalCount">—</div>
+      <div class="stat-label">presentes disponíveis</div>
+      <button class="btn-sound-file" style="margin-top:12px" onclick="carregarPresentes()">↻ Atualizar lista</button>
+      <div class="sound-status" id="sheetsStatus">
+        <span class="sound-dot" id="sheetsDot"></span>
+        <span id="sheetsStatusText">Carregando...</span>
+      </div>
     </div>
-    <button class="sort-counter-refresh" onclick="carregarPresentes()">&#8635; Atualizar</button>
-  </div>
 
-  <div class="sort-main">
+    <div class="panel">
+      <div class="panel-label">⚡ Velocidade</div>
+      <div class="range-wrap">
+        <input type="range" id="speedRange" min="1" max="10" value="6">
+        <span class="range-val" id="speedVal">6</span>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-label">⚙️ Opções</div>
+      <label class="checkbox-label">
+        <input type="checkbox" id="removeCheck">
+        Remover sorteados da lista
+      </label>
+    </div>
+
+    <div class="panel">
+      <button class="btn-clear" onclick="clearHistory()">🗑 Limpar Histórico</button>
+    </div>
+  </div></div><button class="sidebar-tab" onclick="toggleSidebar()" aria-label="Abrir menu">
+  <span class="tab-icon">☰</span>
+  <span class="tab-label">Menu</span>
+</button>
+
+<div class="container">
+  <div class="main">
     <div class="roulette-wrap">
-      <canvas id="rouletteCanvas" width="400" height="340"></canvas>
-      <button class="btn-sortear" id="btnSortear" disabled onclick="startDraw()">&#127922; &nbsp;SORTEAR!</button>
+      <canvas id="rouletteCanvas" width="420" height="360"></canvas>
+      <button class="btn-sortear" id="btnSortear" disabled onclick="startDraw()">
+        🎲 &nbsp; SORTEAR!
+      </button>
     </div>
+
     <div class="result-panel">
-      <div class="result-icon">&#127942;</div>
-      <div>
-        <div class="result-label">&#11042; Resultado do Sorteio &#11042;</div>
+      <div class="result-icon">🏆</div>
+      <div class="result-content">
+        <div class="result-label">⬡ &nbsp; Resultado do Sorteio &nbsp; ⬡</div>
         <div id="resultText">Aguardando sorteio...</div>
       </div>
     </div>
+
     <div class="history-panel">
       <div class="history-header">
-        <span>&#128220; Historico de Sorteios</span>
+        <span>📜 Histórico de Sorteios</span>
         <span class="history-count" id="historyCount">0</span>
       </div>
-      <div id="historyList"><div class="empty-hint">Os sorteios aparecerao aqui</div></div>
+      <div id="historyList">
+        <div class="empty-hint">Os sorteios aparecerão aqui</div>
+      </div>
     </div>
-  </div>
-</section>
-
-<script>
+  </div></div><script>
 // ─── State ───────────────────────────────────────────────────────────
 let allData = [];
 let history = [];
@@ -201,7 +1076,29 @@ let angle = 0;
 let animFrameId = null;
 let colIndex = 0;
 
+// ─── Sidebar toggle ───────────────────────────────────────────────────
+const sidebarEl = document.querySelector('.sidebar');
+const sidebarTab = document.querySelector('.sidebar-tab');
 
+function toggleSidebar() {
+  const isOpen = sidebarEl.classList.toggle('open');
+  sidebarTab.classList.toggle('active', isOpen);
+  overlayEl.style.display = isOpen ? 'block' : 'none';
+}
+
+// Click-outside overlay
+const overlayEl = document.createElement('div');
+overlayEl.style.cssText = `
+  display:none; position:fixed; inset:0; z-index:199;
+  background:rgba(0,0,0,0.35); backdrop-filter:blur(1px);
+  cursor:default;
+`;
+overlayEl.addEventListener('click', () => {
+  sidebarEl.classList.remove('open');
+  sidebarTab.classList.remove('active');
+  overlayEl.style.display = 'none';
+});
+document.body.appendChild(overlayEl);
 
 // ─── Canvas ──────────────────────────────────────────────────────────
 const canvas = document.getElementById('rouletteCanvas');
@@ -209,7 +1106,7 @@ const ctx = canvas.getContext('2d');
 const CX = canvas.width / 2;
 const CY = canvas.height / 2;
 const R = 130;
-// ─── Fallback drawn wheel ───
+// (used if image not found) ──────────────────
 const wheelCanvas = document.createElement('canvas');
 wheelCanvas.width = 300; wheelCanvas.height = 300;
 const wctx = wheelCanvas.getContext('2d');
@@ -377,7 +1274,7 @@ function drawRoulette(items = [], ang = 0) {
   ctx.restore();
 }
 
-('input', function() {
+document.getElementById('speedRange').addEventListener('input', function() {
   document.getElementById('speedVal').textContent = this.value;
 });
 
@@ -390,7 +1287,8 @@ function updateRoulette() {
 var GS_URL = 'https://script.google.com/macros/s/AKfycby-q26kGx0JxVEjZxYmFifjRvldlI4kQ6dyfpCIt6DrXtXObteMBf3Piasw4_xYLm-c/exec';
 
 function setSheetStatus(msg, ok) {
-  var el = document.getElementById('sheetsStatusText'); if (el) el.textContent = msg;
+  document.getElementById('sheetsStatusText').textContent = msg;
+  document.getElementById('sheetsDot').className = 'sound-dot' + (ok === true ? ' ok' : ok === false ? ' err' : '');
 }
 
 async function carregarPresentes() {
@@ -433,6 +1331,7 @@ function startDraw() {
   if (spinning || allData.length === 0) return;
 
   const winner = allData[Math.floor(Math.random() * allData.length)];
+  const speed = parseInt(document.getElementById('speedRange').value);
 
   spinning = true;
   canvas.classList.add('spinning');
@@ -440,7 +1339,7 @@ function startDraw() {
   document.getElementById('resultText').textContent = '🎲 Sorteando...';
   document.getElementById('resultText').className = '';
   const totalRotation = (Math.PI * 2) * (3 + Math.floor(Math.random() * 4)) + Math.random() * Math.PI * 2;
-  const duration = 3000 + Math.random() * 2000;
+  const duration = (2000 + Math.random() * 2000) / (speed / 5);
   const startTime = performance.now();
   const startAngle = angle;
 
@@ -493,17 +1392,19 @@ function finishDraw(winner) {
   history.unshift({ value: displayVal, time });
   renderHistory();
 
-  // Remove winner from list
-  const idx = allData.indexOf(winner);
-  if (idx > -1) allData.splice(idx, 1);
-  document.getElementById('totalCount').textContent = allData.length;
+  // Remove from list if checked
+  if (document.getElementById('removeCheck').checked) {
+    const idx = allData.indexOf(winner);
+    if (idx > -1) allData.splice(idx, 1);
+    document.getElementById('totalCount').textContent = allData.length;
 
-  if (allData.length === 0) {
-    document.getElementById('btnSortear').disabled = true;
-    document.getElementById('resultText').textContent = '✅ Todos os participantes foram sorteados!';
-    document.getElementById('resultText').className = '';
-    drawRoulette([], angle);
-    return;
+    if (allData.length === 0) {
+      document.getElementById('btnSortear').disabled = true;
+      document.getElementById('resultText').textContent = '✅ Todos os itens foram sorteados!';
+      document.getElementById('resultText').className = '';
+      drawRoulette([], angle);
+      return;
+    }
   }
 
   updateRoulette();
@@ -537,9 +1438,9 @@ function clearHistory() {
 }
 
 drawRoulette([], 0);
-carregarPresentes();
-</script>
-<script>
+document.getElementById('speedVal').textContent = document.getElementById('speedRange').value;
+
+
 // ─── Scanner de Presenca ───────────────────────────────────────────────
 var SC_URL = 'https://script.google.com/macros/s/AKfycby-q26kGx0JxVEjZxYmFifjRvldlI4kQ6dyfpCIt6DrXtXObteMBf3Piasw4_xYLm-c/exec';
 var SC_HIST_KEY = 'sp_hist';
@@ -553,8 +1454,6 @@ var scVideoEl = null;
 var scIntervalId = null;
 
 function scSetStatus(msg) { var el = document.getElementById('sc-status'); if(el) el.textContent = msg; }
-
-// voltarHomeDoScanner definida no script global acima
 
 async function scLigarCamera() {
   document.getElementById('sc-btn-retry').style.display = 'none';
@@ -676,17 +1575,23 @@ async function scConfirmar(num) {
   await scRegistrarPresenca(num);
 }
 
+/* Modificação para conseguir ler a Mesa que vem do App Script */
 async function scRegistrarPresenca(num) {
   scMostrarRes('avi', '...', 'Registrando No ' + num, 'Aguarde');
   try {
-    await fetch(SC_URL + '?numero=' + num, { method: 'GET', mode: 'no-cors' });
-    var item = { n: num, h: scHora(), s: 'ok' };
+    const response = await fetch(SC_URL + '?numero=' + num, { method: 'GET' });
+    let data = {};
+    try { data = await response.json(); } catch(e) {}
+    
+    var mesaText = data.mesa ? ' | Mesa: ' + data.mesa : '';
+    var item = { n: num, h: scHora(), s: 'ok', m: data.mesa || '' };
+    
     scHistorico.unshift(item);
     scSalvar(); scRenderHist(); scAtualizarCnt();
-    scMostrarRes('ok', 'OK', 'No ' + num + ' - PRESENTE', 'Registrado as ' + item.h);
+    scMostrarRes('ok', 'OK', 'No ' + num + ' - PRESENTE' + mesaText, 'Registrado as ' + item.h);
     scVibrar('ok');
   } catch(e) {
-    var item2 = { n: num, h: scHora(), s: 'err' };
+    var item2 = { n: num, h: scHora(), s: 'err', m: '' };
     scHistorico.unshift(item2);
     scSalvar(); scRenderHist();
     scMostrarRes('err', 'X', 'Erro ao registrar No ' + num, 'Verifique a conexao');
@@ -715,7 +1620,8 @@ function scRenderHist() {
   if (!el) return;
   if (scHistorico.length === 0) { el.innerHTML = '<div class="sc-vazio">Nenhum codigo lido ainda</div>'; return; }
   el.innerHTML = scHistorico.slice(0,40).map(function(h){
-    return '<div class="sc-hi"><span class="sc-hn">No ' + h.n + '</span><span class="sc-hh">' + h.h + '</span><span class="sc-hs ' + h.s + '">' + (h.s==='ok'?'OK':'ERRO') + '</span></div>';
+    var mesaStr = h.m ? ' <span style="color:#7dd4f5">(Mesa ' + h.m + ')</span>' : '';
+    return '<div class="sc-hi"><span class="sc-hn">No ' + h.n + mesaStr + '</span><span class="sc-hh">' + h.h + '</span><span class="sc-hs ' + h.s + '">' + (h.s==='ok'?'OK':'ERRO') + '</span></div>';
   }).join('');
 }
 
@@ -742,12 +1648,9 @@ function scVibrar(t) {
   else navigator.vibrate([100,50,100]);
 }
 
-// Init
+// Init scanner data (camera só liga quando o usuario entra na tela)
 scHistorico = JSON.parse(localStorage.getItem(SC_HIST_KEY) || '[]');
-scRenderHist();
-scAtualizarCnt();
-scLigarCamera();
-scIntervalId = setInterval(scAtualizarCnt, 30000);
+
 </script>
-</body>
+</div></body>
 </html>
