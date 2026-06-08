@@ -728,11 +728,14 @@ function scLimpar() {
 function scSalvar() { localStorage.setItem(SC_HIST_KEY, JSON.stringify(scHistorico)); }
 
 function scAtualizarCnt() {
-  fetch(SC_URL + '?acao=contagem')
-    .then(function(r){ return r.json(); })
-    .then(function(data){ if (data.status === 'sucesso') { var el = document.getElementById('sc-cnt'); if(el) el.textContent = data.total; } })
-    .catch(function(){ var el = document.getElementById('sc-cnt'); if(el) el.textContent = scHistorico.filter(function(h){return h.s==='ok';}).length; });
-}
+fetch(SC_URL + '?acao=presentes')
+  .then(r => r.json())
+  .then(data => {
+    if (data.status === 'sucesso') {
+      var listaParticipantes = data.numeros; // Isso puxa os números da planilha
+      // ... seu código de sorteio aqui
+    }
+  });
 
 function scHora() { return new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit',second:'2-digit'}); }
 function scVibrar(t) {
