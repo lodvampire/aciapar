@@ -158,7 +158,7 @@
       <h1>&#127920; <span>SORTEADOR</span> ACIAPAR</h1>
       <p>Animacao de Roleta &middot; Selecao Aleatoria</p>
     </div>
-    <span class="version-badge">v2.0</span>
+    <span class="version-badge">v2.1</span>
   </div>
 
   <div class="sort-counter">
@@ -193,41 +193,49 @@
 </section>
 
 <script>
-// ─── State ───────────────────────────────────────────────────────────
-let allData = [];
-let history = [];
-let spinning = false;
-let angle = 0;
-let animFrameId = null;
-let colIndex = 0;
+// ─── URL do Apps Script (única fonte de verdade) ──────────────────────────
+var SCRIPT_URL = 'https://script.google.com/macros/s/AKfycby-q26kGx0JxVEjZxYmFifjRvldlI4kQ6dyfpCIt6DrXtXObteMBf3Piasw4_xYLm-c/exec';
 
+// ─── Scanner: alias para a mesma URL ─────────────────────────────────────
+var SC_URL = SCRIPT_URL;
+var GS_URL = SCRIPT_URL;
 
+// ─── Estado global do Sorteador ───────────────────────────────────────────
+var allData      = [];   // array de números dos presentes (ex: [12, 47, 103, ...])
+var drawHistory  = [];
+var spinning     = false;
+var angle        = 0;
+var animFrameId  = null;
 
-// ─── Canvas ──────────────────────────────────────────────────────────
-const canvas = document.getElementById('rouletteCanvas');
-const ctx = canvas.getContext('2d');
-const CX = canvas.width / 2;
-const CY = canvas.height / 2;
-const R = 130;
-// ─── Fallback drawn wheel ───
-const wheelCanvas = document.createElement('canvas');
-wheelCanvas.width = 300; wheelCanvas.height = 300;
-const wctx = wheelCanvas.getContext('2d');
+// ─── Canvas ──────────────────────────────────────────────────────────────
+var canvas = document.getElementById('rouletteCanvas');
+var ctx    = canvas.getContext('2d');
+var CX     = canvas.width  / 2;
+var CY     = canvas.height / 2;
+var R      = 130;
+
+// ─── Roda decorativa (fallback canvas) ───────────────────────────────────
+var wheelCanvas    = document.createElement('canvas');
+wheelCanvas.width  = 300;
+wheelCanvas.height = 300;
+var wctx = wheelCanvas.getContext('2d');
 (function drawFallback() {
-  const wc = wctx, wx = 150, wy = 150, wr = 140;
-  const bezelG = wc.createRadialGradient(wx-38, wy-38, wr*0.55, wx, wy, wr);
+  var wc = wctx, wx = 150, wy = 150, wr = 140;
+  var bezelG = wc.createRadialGradient(wx-38, wy-38, wr*0.55, wx, wy, wr);
   bezelG.addColorStop(0,'#f5f5f5'); bezelG.addColorStop(0.5,'#b0b2b8'); bezelG.addColorStop(1,'#606268');
   wc.beginPath(); wc.arc(wx,wy,wr,0,Math.PI*2); wc.fillStyle=bezelG; wc.fill();
-  const discR = wr*0.855;
-  const discG = wc.createRadialGradient(wx-22,wy-22,discR*0.1,wx,wy,discR);
+  var discR = wr*0.855;
+  var discG = wc.createRadialGradient(wx-22,wy-22,discR*0.1,wx,wy,discR);
   discG.addColorStop(0,'#d4d6dc'); discG.addColorStop(1,'#82848e');
   wc.beginPath(); wc.arc(wx,wy,discR,0,Math.PI*2); wc.fillStyle=discG; wc.fill();
-  const cols = ['#cc1a28','#1e3ab8','#1e3ab8','#9ea2b2','#1e3ab8','#1e3ab8'];
-  const SA = Math.PI*2/6;
-  for(let i=0;i<6;i++){
-    const a = -Math.PI/2 + i*SA;
-    const g = wc.createLinearGradient(wx+discR*0.2*Math.cos(a+SA/2),wy+discR*0.2*Math.sin(a+SA/2),
-                                      wx+discR*0.9*Math.cos(a+SA/2),wy+discR*0.9*Math.sin(a+SA/2));
+  var cols = ['#cc1a28','#1e3ab8','#1e3ab8','#9ea2b2','#1e3ab8','#1e3ab8'];
+  var SA = Math.PI*2/6;
+  for (var i=0; i<6; i++) {
+    var a = -Math.PI/2 + i*SA;
+    var g = wc.createLinearGradient(
+      wx+discR*0.2*Math.cos(a+SA/2), wy+discR*0.2*Math.sin(a+SA/2),
+      wx+discR*0.9*Math.cos(a+SA/2), wy+discR*0.9*Math.sin(a+SA/2)
+    );
     g.addColorStop(0,cols[i]+'cc'); g.addColorStop(1,cols[i]+'44');
     wc.beginPath(); wc.moveTo(wx,wy); wc.arc(wx,wy,discR,a,a+SA); wc.closePath();
     wc.fillStyle=g; wc.fill();
@@ -235,267 +243,219 @@ const wctx = wheelCanvas.getContext('2d');
   wc.beginPath(); wc.arc(wx,wy,10,0,Math.PI*2); wc.fillStyle='#ccc'; wc.fill();
 })();
 
-
-function drawRoulette(items = [], ang = 0) {
+// ─── Desenho da roleta ────────────────────────────────────────────────────
+function drawRoulette(items, ang) {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-  // Subtle radial glow behind wheel
-  const glow = ctx.createRadialGradient(CX, CY, R * 0.3, CX, CY, R + 50);
+  var glow = ctx.createRadialGradient(CX, CY, R*0.3, CX, CY, R+50);
   glow.addColorStop(0,   'rgba(0,80,200,0.0)');
   glow.addColorStop(0.7, 'rgba(0,60,160,0.08)');
   glow.addColorStop(1,   'rgba(0,115,255,0.14)');
-  ctx.beginPath();
-  ctx.arc(CX, CY, R + 50, 0, Math.PI * 2);
-  ctx.fillStyle = glow;
-  ctx.fill();
+  ctx.beginPath(); ctx.arc(CX, CY, R+50, 0, Math.PI*2);
+  ctx.fillStyle = glow; ctx.fill();
 
-  // ── Draw rotating wheel: use real image if loaded, fallback canvas otherwise
   ctx.save();
   ctx.translate(CX, CY);
   ctx.rotate(ang);
-
-  // Clip to circle
-  ctx.beginPath();
-  ctx.arc(0, 0, R, 0, Math.PI * 2);
-  ctx.clip();
-
-  const src = wheelCanvas;
-  ctx.drawImage(src, -R, -R, R * 2, R * 2);
-
+  ctx.beginPath(); ctx.arc(0, 0, R, 0, Math.PI*2); ctx.clip();
+  ctx.drawImage(wheelCanvas, -R, -R, R*2, R*2);
   ctx.restore();
 
-  // ── Outer chrome ring matching the image bezel ──
-  // Dark inset shadow
-  const rimShadow = ctx.createRadialGradient(CX, CY, R - 6, CX, CY, R + 14);
-  rimShadow.addColorStop(0,   'rgba(0,0,0,0)');
-  rimShadow.addColorStop(0.5, 'rgba(0,0,0,0.25)');
-  rimShadow.addColorStop(1,   'rgba(0,0,0,0)');
-  ctx.beginPath();
-  ctx.arc(CX, CY, R + 14, 0, Math.PI * 2);
-  ctx.fillStyle = rimShadow;
-  ctx.fill();
+  // Anel cromado
+  var rimShadow = ctx.createRadialGradient(CX, CY, R-6, CX, CY, R+14);
+  rimShadow.addColorStop(0,'rgba(0,0,0,0)'); rimShadow.addColorStop(0.5,'rgba(0,0,0,0.25)'); rimShadow.addColorStop(1,'rgba(0,0,0,0)');
+  ctx.beginPath(); ctx.arc(CX, CY, R+14, 0, Math.PI*2); ctx.fillStyle=rimShadow; ctx.fill();
 
-  // Chrome bezel ring
-  const rimGrad = ctx.createLinearGradient(CX - R, CY - R, CX + R, CY + R);
-  rimGrad.addColorStop(0.0,  'rgba(255,255,255,0.55)');
-  rimGrad.addColorStop(0.25, 'rgba(200,202,208,0.40)');
-  rimGrad.addColorStop(0.5,  'rgba(140,142,148,0.30)');
-  rimGrad.addColorStop(0.75, 'rgba(100,102,108,0.40)');
-  rimGrad.addColorStop(1.0,  'rgba(60,62,68,0.50)');
-  ctx.beginPath();
-  ctx.arc(CX, CY, R + 2, 0, Math.PI * 2);
-  ctx.strokeStyle = rimGrad;
-  ctx.lineWidth = 10;
-  ctx.stroke();
+  var rimGrad = ctx.createLinearGradient(CX-R, CY-R, CX+R, CY+R);
+  rimGrad.addColorStop(0.0, 'rgba(255,255,255,0.55)');
+  rimGrad.addColorStop(0.25,'rgba(200,202,208,0.40)');
+  rimGrad.addColorStop(0.5, 'rgba(140,142,148,0.30)');
+  rimGrad.addColorStop(0.75,'rgba(100,102,108,0.40)');
+  rimGrad.addColorStop(1.0, 'rgba(60,62,68,0.50)');
+  ctx.beginPath(); ctx.arc(CX, CY, R+2, 0, Math.PI*2);
+  ctx.strokeStyle=rimGrad; ctx.lineWidth=10; ctx.stroke();
 
-  // Inner bright edge line
-  ctx.beginPath();
-  ctx.arc(CX, CY, R - 1, 0, Math.PI * 2);
-  ctx.strokeStyle = 'rgba(255,255,255,0.18)';
-  ctx.lineWidth = 1.5;
-  ctx.stroke();
+  ctx.beginPath(); ctx.arc(CX, CY, R-1, 0, Math.PI*2);
+  ctx.strokeStyle='rgba(255,255,255,0.18)'; ctx.lineWidth=1.5; ctx.stroke();
 
-  // Specular flare top-left on bezel
   ctx.save();
   ctx.beginPath();
-  ctx.arc(CX, CY, R + 7, -Math.PI * 0.9, -Math.PI * 0.15);
-  ctx.arc(CX, CY, R - 4, -Math.PI * 0.15, -Math.PI * 0.9, true);
+  ctx.arc(CX, CY, R+7, -Math.PI*0.9, -Math.PI*0.15);
+  ctx.arc(CX, CY, R-4, -Math.PI*0.15, -Math.PI*0.9, true);
   ctx.closePath();
-  const flare = ctx.createLinearGradient(CX - R, CY - R, CX + R * 0.2, CY + R * 0.2);
-  flare.addColorStop(0, 'rgba(255,255,255,0.50)');
-  flare.addColorStop(0.5, 'rgba(255,255,255,0.12)');
-  flare.addColorStop(1, 'rgba(255,255,255,0.00)');
-  ctx.fillStyle = flare;
-  ctx.fill();
-  ctx.restore();
+  var flare = ctx.createLinearGradient(CX-R, CY-R, CX+R*0.2, CY+R*0.2);
+  flare.addColorStop(0,'rgba(255,255,255,0.50)');
+  flare.addColorStop(0.5,'rgba(255,255,255,0.12)');
+  flare.addColorStop(1,'rgba(255,255,255,0.00)');
+  ctx.fillStyle=flare; ctx.fill(); ctx.restore();
 
-  // ── Participant name labels orbiting outside the wheel ──────────────
-  if (items.length > 0) {
-    const labelR = R + 26;
-    const n = items.length;
-    const sliceAng = (Math.PI * 2) / n;
+  // Labels dos participantes ao redor da roda
+  if (items && items.length > 0) {
+    var labelR  = R + 26;
+    var n       = items.length;
+    var sliceAng = (Math.PI * 2) / n;
     ctx.font = 'bold 9px "Exo 2", sans-serif';
-    for (let i = 0; i < n; i++) {
-      const a = ang + i * sliceAng + sliceAng / 2;
-      const lx = CX + labelR * Math.cos(a);
-      const ly = CY + labelR * Math.sin(a);
-      const label = String(items[i]).length > 11 ? String(items[i]).slice(0, 11) + '…' : String(items[i]);
+    for (var i = 0; i < n; i++) {
+      var a  = ang + i * sliceAng + sliceAng / 2;
+      var lx = CX + labelR * Math.cos(a);
+      var ly = CY + labelR * Math.sin(a);
+      var label = String(items[i]);
+      if (label.length > 11) label = label.slice(0, 11) + '…';
 
       ctx.save();
       ctx.translate(lx, ly);
       ctx.rotate(a + Math.PI / 2);
-
-      const tw = ctx.measureText(label).width + 12;
-      // Pill background
-      ctx.fillStyle = 'rgba(5,10,30,0.88)';
+      var tw = ctx.measureText(label).width + 12;
+      ctx.fillStyle   = 'rgba(5,10,30,0.88)';
       ctx.strokeStyle = 'rgba(0,115,255,0.4)';
-      ctx.lineWidth = 1;
+      ctx.lineWidth   = 1;
       ctx.beginPath();
-      ctx.roundRect(-tw / 2, -9, tw, 18, 5);
-      ctx.fill();
-      ctx.stroke();
-
-      ctx.fillStyle = '#dce8ff';
-      ctx.textAlign = 'center';
+      ctx.roundRect(-tw/2, -9, tw, 18, 5);
+      ctx.fill(); ctx.stroke();
+      ctx.fillStyle    = '#dce8ff';
+      ctx.textAlign    = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillText(label, 0, 0);
       ctx.restore();
     }
   }
 
-  // ── Fixed arrow pointer at top ──────────────────────────────────────
-  const ax = CX, ay = CY - R - 8;
+  // Seta
+  var ax = CX, ay = CY - R - 8;
   ctx.save();
-  ctx.shadowColor = 'rgba(255,30,30,0.9)';
-  ctx.shadowBlur = 14;
+  ctx.shadowColor = 'rgba(255,30,30,0.9)'; ctx.shadowBlur = 14;
   ctx.beginPath();
-  ctx.moveTo(ax - 13, ay - 22);
-  ctx.lineTo(ax + 13, ay - 22);
-  ctx.lineTo(ax,      ay + 6);
+  ctx.moveTo(ax-13, ay-22); ctx.lineTo(ax+13, ay-22); ctx.lineTo(ax, ay+6);
   ctx.closePath();
-  const arrowGrad = ctx.createLinearGradient(ax, ay - 22, ax, ay + 6);
-  arrowGrad.addColorStop(0, '#ff6666');
-  arrowGrad.addColorStop(1, '#cc0000');
-  ctx.fillStyle = arrowGrad;
-  ctx.fill();
-  ctx.strokeStyle = '#880000';
-  ctx.lineWidth = 1.2;
-  ctx.stroke();
-  ctx.restore();
+  var arrowGrad = ctx.createLinearGradient(ax, ay-22, ax, ay+6);
+  arrowGrad.addColorStop(0,'#ff6666'); arrowGrad.addColorStop(1,'#cc0000');
+  ctx.fillStyle=arrowGrad; ctx.fill();
+  ctx.strokeStyle='#880000'; ctx.lineWidth=1.2; ctx.stroke(); ctx.restore();
 
-  // Arrow circle cap
   ctx.save();
-  ctx.shadowColor = 'rgba(255,30,30,0.7)';
-  ctx.shadowBlur = 8;
-  ctx.beginPath();
-  ctx.arc(ax, ay - 26, 6, 0, Math.PI * 2);
-  const capGrad = ctx.createRadialGradient(ax - 2, ay - 28, 1, ax, ay - 26, 6);
-  capGrad.addColorStop(0, '#ff9999');
-  capGrad.addColorStop(1, '#cc0000');
-  ctx.fillStyle = capGrad;
-  ctx.fill();
-  ctx.restore();
+  ctx.shadowColor='rgba(255,30,30,0.7)'; ctx.shadowBlur=8;
+  ctx.beginPath(); ctx.arc(ax, ay-26, 6, 0, Math.PI*2);
+  var capGrad = ctx.createRadialGradient(ax-2, ay-28, 1, ax, ay-26, 6);
+  capGrad.addColorStop(0,'#ff9999'); capGrad.addColorStop(1,'#cc0000');
+  ctx.fillStyle=capGrad; ctx.fill(); ctx.restore();
 }
 
-('input', function() {
-  document.getElementById('speedVal').textContent = this.value;
-});
-
 function updateRoulette() {
-  const sample = shuffle([...allData]).slice(0, 15).map(r => r[colIndex]);
+  var sample = shuffle([...allData]).slice(0, 15);
   drawRoulette(sample, angle);
 }
 
-// ─── Google Sheets — carregar presentes ──────────────────────────────
-var GS_URL = 'https://script.google.com/macros/s/AKfycby-q26kGx0JxVEjZxYmFifjRvldlI4kQ6dyfpCIt6DrXtXObteMBf3Piasw4_xYLm-c/exec';
+function shuffle(arr) {
+  for (var i = arr.length - 1; i > 0; i--) {
+    var j = Math.floor(Math.random() * (i + 1));
+    var tmp = arr[i]; arr[i] = arr[j]; arr[j] = tmp;
+  }
+  return arr;
+}
 
-function setSheetStatus(msg, ok) {
-  var el = document.getElementById('sheetsStatusText'); if (el) el.textContent = msg;
+// ─── Carregar presentes do Sheets ────────────────────────────────────────
+//
+// ✅ CORRIGIDO: o Apps Script agora retorna data.numeros como array de
+// números (ex: [3, 47, 102]).  O HTML armazena diretamente esses números
+// em allData — sem transformar em array de arrays nem usar colIndex.
+//
+function setSheetStatus(msg) {
+  var el = document.getElementById('sheetsStatusText');
+  if (el) el.textContent = msg;
 }
 
 async function carregarPresentes() {
-  setSheetStatus('Buscando dados...', null);
+  setSheetStatus('Buscando dados...');
   document.getElementById('totalCount').textContent = '…';
   document.getElementById('btnSortear').disabled = true;
   try {
-    const resp = await fetch(GS_URL + '?acao=presentes');
-    const data = await resp.json();
+    var resp = await fetch(GS_URL + '?acao=presentes');
+    var data = await resp.json();
+
     if (data.status !== 'sucesso' || !data.numeros || data.numeros.length === 0) {
-      setSheetStatus('Nenhum presente encontrado', false);
+      setSheetStatus('Nenhum presente encontrado');
       document.getElementById('totalCount').textContent = '0';
       allData = [];
       drawRoulette([], angle);
       return;
     }
-    allData = data.numeros.map(n => [String(n)]);
-    colIndex = 0;
+
+    // ✅ allData é array plano de valores (números dos presentes)
+    allData = data.numeros.map(function(n) { return String(n); });
+
     document.getElementById('totalCount').textContent = allData.length;
     document.getElementById('btnSortear').disabled = false;
-    setSheetStatus('✓ ' + allData.length + ' presentes carregados', true);
+    setSheetStatus('✓ ' + allData.length + ' presentes carregados');
     updateRoulette();
   } catch(e) {
-    setSheetStatus('Erro de conexão', false);
+    setSheetStatus('Erro de conexao');
     document.getElementById('totalCount').textContent = '!';
   }
 }
 
-function shuffle(arr) {
-  for (let i = arr.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [arr[i], arr[j]] = [arr[j], arr[i]];
-  }
-  return arr;
-}
-
-
-// ─── Sorteio ──────────────────────────────────────────────────────────
+// ─── Sorteio ──────────────────────────────────────────────────────────────
 function startDraw() {
   if (spinning || allData.length === 0) return;
 
-  const winner = allData[Math.floor(Math.random() * allData.length)];
+  // ✅ CORRIGIDO: winner é um valor direto (string do número), não um array
+  var winnerIdx  = Math.floor(Math.random() * allData.length);
+  var winnerVal  = allData[winnerIdx];
 
   spinning = true;
-  canvas.classList.add('spinning');
   document.getElementById('btnSortear').disabled = true;
   document.getElementById('resultText').textContent = '🎲 Sorteando...';
   document.getElementById('resultText').className = '';
-  const totalRotation = (Math.PI * 2) * (3 + Math.floor(Math.random() * 4)) + Math.random() * Math.PI * 2;
-  const duration = 3000 + Math.random() * 2000;
-  const startTime = performance.now();
-  const startAngle = angle;
+
+  var totalRotation = (Math.PI * 2) * (3 + Math.floor(Math.random() * 4)) + Math.random() * Math.PI * 2;
+  var duration      = 3000 + Math.random() * 2000;
+  var startTime     = performance.now();
+  var startAngle    = angle;
 
   function animate(now) {
-    const elapsed = now - startTime;
-    const t = Math.min(elapsed / duration, 1);
-    // Easing: fast start, slow end
-    const eased = 1 - Math.pow(1 - t, 3);
+    var elapsed = now - startTime;
+    var t       = Math.min(elapsed / duration, 1);
+    var eased   = 1 - Math.pow(1 - t, 3);
 
     angle = startAngle + totalRotation * eased;
 
-    // Shuffle names while spinning
     if (t < 0.85) {
-      const sample = shuffle([...allData]).slice(0, 15).map(r => r[colIndex]);
+      var sample = shuffle([...allData]).slice(0, 15);
       drawRoulette(sample, angle);
     } else {
-      // Show final layout converging
-      drawRoulette([winner[colIndex]], angle);
+      drawRoulette([winnerVal], angle);
     }
 
     if (t < 1) {
       animFrameId = requestAnimationFrame(animate);
     } else {
-      finishDraw(winner);
+      finishDraw(winnerIdx, winnerVal);
     }
   }
 
   requestAnimationFrame(animate);
 }
 
-function finishDraw(winner) {
+function finishDraw(winnerIdx, winnerVal) {
   spinning = false;
-  canvas.classList.remove('spinning');
-  const displayVal = String(winner[colIndex] !== undefined ? winner[colIndex] : winner[0]);
-
-  const resultEl = document.getElementById('resultText');
-  resultEl.textContent = `🏆 ${displayVal}`;
-  resultEl.className = 'active';
+  var resultEl = document.getElementById('resultText');
+  resultEl.textContent = '🏆 ' + winnerVal;
+  resultEl.className   = 'active';
 
   // Flash
-  let flashes = 0;
-  const flashInterval = setInterval(() => {
+  var flashes = 0;
+  var flashInterval = setInterval(function() {
     resultEl.style.opacity = resultEl.style.opacity === '0.3' ? '1' : '0.3';
     if (++flashes >= 8) { clearInterval(flashInterval); resultEl.style.opacity = '1'; }
   }, 150);
 
-  // Add to history
-  const now = new Date();
-  const time = now.toTimeString().slice(0, 8);
-  history.unshift({ value: displayVal, time });
+  // Histórico
+  var now  = new Date();
+  var time = now.toTimeString().slice(0, 8);
+  drawHistory.unshift({ value: winnerVal, time: time });
   renderHistory();
 
-  // Remove winner from list
-  const idx = allData.indexOf(winner);
-  if (idx > -1) allData.splice(idx, 1);
+  // Remove o vencedor da lista
+  allData.splice(winnerIdx, 1);
   document.getElementById('totalCount').textContent = allData.length;
 
   if (allData.length === 0) {
@@ -511,50 +471,44 @@ function finishDraw(winner) {
 }
 
 function renderHistory() {
-  const list = document.getElementById('historyList');
-  document.getElementById('historyCount').textContent = history.length;
+  var list = document.getElementById('historyList');
+  document.getElementById('historyCount').textContent = drawHistory.length;
 
-  if (history.length === 0) {
-    list.innerHTML = '<div class="empty-hint">Os sorteios aparecerão aqui</div>';
+  if (drawHistory.length === 0) {
+    list.innerHTML = '<div class="empty-hint">Os sorteios aparecerao aqui</div>';
     return;
   }
 
-  list.innerHTML = history.map((h, i) => `
-    <div class="history-item">
-      <span class="num">#${history.length - i}</span>
-      <span class="time">${h.time}</span>
-      <span class="name">${h.value}</span>
-    </div>
-  `).join('');
+  list.innerHTML = drawHistory.map(function(h, i) {
+    return '<div class="history-entry">' +
+      '<span class="h-num">#' + (drawHistory.length - i) + '</span>' +
+      '<span class="h-label">' + h.value + '</span>' +
+      '<span class="h-badge winner">' + h.time + '</span>' +
+    '</div>';
+  }).join('');
 }
 
-function clearHistory() {
-  if (history.length === 0) return;
-  if (confirm('Limpar todo o histórico?')) {
-    history = [];
-    renderHistory();
-  }
-}
-
+// Init do sorteador
 drawRoulette([], 0);
 carregarPresentes();
 </script>
+
 <script>
-// ─── Scanner de Presenca ───────────────────────────────────────────────
-var SC_URL = 'https://script.google.com/macros/s/AKfycby-q26kGx0JxVEjZxYmFifjRvldlI4kQ6dyfpCIt6DrXtXObteMBf3Piasw4_xYLm-c/exec';
-var SC_HIST_KEY = 'sp_hist';
-var scHistorico = [];
-var scUltimoCod = '';
-var scUltimoTs = 0;
-var scAguardandoConfirm = false;
-var scStream = null;
-var scDetectando = false;
-var scVideoEl = null;
-var scIntervalId = null;
+// ─── Scanner de Presenca ───────────────────────────────────────────────────
+var SC_HIST_KEY        = 'sp_hist';
+var scHistorico        = [];
+var scUltimoCod        = '';
+var scUltimoTs         = 0;
+var scAguardandoConfirm= false;
+var scStream           = null;
+var scDetectando       = false;
+var scVideoEl          = null;
+var scIntervalId       = null;
 
-function scSetStatus(msg) { var el = document.getElementById('sc-status'); if(el) el.textContent = msg; }
-
-// voltarHomeDoScanner definida no script global acima
+function scSetStatus(msg) {
+  var el = document.getElementById('sc-status');
+  if (el) el.textContent = msg;
+}
 
 async function scLigarCamera() {
   document.getElementById('sc-btn-retry').style.display = 'none';
@@ -570,21 +524,18 @@ async function scLigarCamera() {
     };
   } catch(e) {
     var msg = 'Erro ao acessar camera.';
-    if (e.name === 'NotAllowedError') msg = 'Permissao negada. Permita o acesso a camera.';
-    else if (e.name === 'NotFoundError') msg = 'Camera nao encontrada.';
-    else msg = 'Erro: ' + e.name + '. Use entrada manual.';
+    if      (e.name === 'NotAllowedError') msg = 'Permissao negada. Permita o acesso a camera.';
+    else if (e.name === 'NotFoundError')   msg = 'Camera nao encontrada.';
+    else                                   msg = 'Erro: ' + e.name + '. Use entrada manual.';
     scSetStatus(msg);
     document.getElementById('sc-btn-retry').style.display = 'block';
   }
 }
 
 function scPararCamera() {
-  if (scStream) {
-    scStream.getTracks().forEach(function(t){ t.stop(); });
-    scStream = null;
-  }
+  if (scStream) { scStream.getTracks().forEach(function(t){ t.stop(); }); scStream = null; }
   scDetectando = false;
-  if (scVideoEl) { scVideoEl.srcObject = null; }
+  if (scVideoEl) scVideoEl.srcObject = null;
 }
 
 function scIniciarDeteccao() {
@@ -597,7 +548,7 @@ function scIniciarDeteccao() {
       if (scVideoEl && scVideoEl.readyState >= 2) {
         detector.detect(scVideoEl).then(function(barcodes) {
           if (barcodes.length > 0) {
-            var cod = barcodes[0].rawValue.trim();
+            var cod   = barcodes[0].rawValue.trim();
             var agora = Date.now();
             if (!scAguardandoConfirm && (cod !== scUltimoCod || agora - scUltimoTs > 4000)) {
               scUltimoCod = cod; scUltimoTs = agora;
@@ -615,12 +566,15 @@ function scIniciarDeteccao() {
     sc.onload = function() {
       scSetStatus('Camera ativa - aponte para o codigo');
       var hints = new Map();
-      hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, [ZXing.BarcodeFormat.CODE_128, ZXing.BarcodeFormat.CODE_39, ZXing.BarcodeFormat.EAN_13, ZXing.BarcodeFormat.QR_CODE]);
+      hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, [
+        ZXing.BarcodeFormat.CODE_128, ZXing.BarcodeFormat.CODE_39,
+        ZXing.BarcodeFormat.EAN_13,   ZXing.BarcodeFormat.QR_CODE
+      ]);
       var reader = new ZXing.BrowserMultiFormatReader(hints);
       reader.decodeFromVideoElement(scVideoEl, function(result, err) {
         if (!scDetectando) return;
         if (result) {
-          var cod = result.getText().trim();
+          var cod   = result.getText().trim();
           var agora = Date.now();
           if (!scAguardandoConfirm && (cod !== scUltimoCod || agora - scUltimoTs > 4000)) {
             scUltimoCod = cod; scUltimoTs = agora;
@@ -700,6 +654,7 @@ function scRegistrarManual() {
   document.getElementById('sc-inp').value = '';
   scPedirConfirmacao(v);
 }
+
 document.addEventListener('DOMContentLoaded', function() {
   var inp = document.getElementById('sc-inp');
   if (inp) inp.addEventListener('keydown', function(e){ if(e.key==='Enter') scRegistrarManual(); });
@@ -707,15 +662,20 @@ document.addEventListener('DOMContentLoaded', function() {
 
 function scMostrarRes(tipo, ic, titulo, sub) {
   document.getElementById('sc-res-wrap').innerHTML =
-    '<div class="sc-res ' + tipo + '"><div class="sc-ri">' + ic + '</div><div class="sc-rt"><strong>' + titulo + '</strong><span>' + sub + '</span></div></div>';
+    '<div class="sc-res ' + tipo + '"><div class="sc-ri">' + ic +
+    '</div><div class="sc-rt"><strong>' + titulo + '</strong><span>' + sub + '</span></div></div>';
 }
 
 function scRenderHist() {
   var el = document.getElementById('sc-hist');
   if (!el) return;
-  if (scHistorico.length === 0) { el.innerHTML = '<div class="sc-vazio">Nenhum codigo lido ainda</div>'; return; }
-  el.innerHTML = scHistorico.slice(0,40).map(function(h){
-    return '<div class="sc-hi"><span class="sc-hn">No ' + h.n + '</span><span class="sc-hh">' + h.h + '</span><span class="sc-hs ' + h.s + '">' + (h.s==='ok'?'OK':'ERRO') + '</span></div>';
+  if (scHistorico.length === 0) {
+    el.innerHTML = '<div class="sc-vazio">Nenhum codigo lido ainda</div>'; return;
+  }
+  el.innerHTML = scHistorico.slice(0, 40).map(function(h) {
+    return '<div class="sc-hi"><span class="sc-hn">No ' + h.n + '</span>' +
+           '<span class="sc-hh">' + h.h + '</span>' +
+           '<span class="sc-hs ' + h.s + '">' + (h.s === 'ok' ? 'OK' : 'ERRO') + '</span></div>';
   }).join('');
 }
 
@@ -730,19 +690,30 @@ function scSalvar() { localStorage.setItem(SC_HIST_KEY, JSON.stringify(scHistori
 function scAtualizarCnt() {
   fetch(SC_URL + '?acao=contagem')
     .then(function(r){ return r.json(); })
-    .then(function(data){ if (data.status === 'sucesso') { var el = document.getElementById('sc-cnt'); if(el) el.textContent = data.total; } })
-    .catch(function(){ var el = document.getElementById('sc-cnt'); if(el) el.textContent = scHistorico.filter(function(h){return h.s==='ok';}).length; });
+    .then(function(data){
+      if (data.status === 'sucesso') {
+        var el = document.getElementById('sc-cnt');
+        if (el) el.textContent = data.total;
+      }
+    })
+    .catch(function(){
+      var el = document.getElementById('sc-cnt');
+      if (el) el.textContent = scHistorico.filter(function(h){ return h.s === 'ok'; }).length;
+    });
 }
 
-function scHora() { return new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit',second:'2-digit'}); }
+function scHora() {
+  return new Date().toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit', second:'2-digit' });
+}
+
 function scVibrar(t) {
   if (!navigator.vibrate) return;
-  if (t==='ok') navigator.vibrate(80);
-  else if (t==='avi') navigator.vibrate([60,40,60]);
-  else navigator.vibrate([100,50,100]);
+  if      (t === 'ok')  navigator.vibrate(80);
+  else if (t === 'avi') navigator.vibrate([60,40,60]);
+  else                  navigator.vibrate([100,50,100]);
 }
 
-// Init
+// Init do Scanner
 scHistorico = JSON.parse(localStorage.getItem(SC_HIST_KEY) || '[]');
 scRenderHist();
 scAtualizarCnt();
