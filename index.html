@@ -6,7 +6,8 @@
 <title>ACIAPAR — Scanner &amp; Sorteador</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Exo+2:wght@400;700;900&family=Share+Tech+Mono&display=swap');
-  * { box-sizing: border-box; margin: 0; padding: 0; }\n  :root {
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
     --bg:#07080f; --panel:#0d1117; --border:#0d2040;
     --neon:#0073ff; --text:#c8d8f0; --dim:#3a4a6a;
     --sc-v:#00A0E3; --sc-b:rgba(0,160,227,0.22);
@@ -14,340 +15,712 @@
     --sc-t:#e0f4fd; --sc-t2:#7dd4f5;
   }
   body { background:var(--bg); color:var(--text); font-family:'Share Tech Mono',monospace; min-height:100vh; }
-  body::before { content:''; position:fixed; inset:0; background:linear-gradient(rgba(18,16,16,0) 50%, rgba(0,0,0,0.25) 50%), linear-gradient(90deg, rgba(255,0,0,0.06), rgba(0,255,0,0.02), rgba(0,0,255,0.06)); background-size:100% 4px, 6px 100%; z-index:99999; pointer-events:none; }
-  .app-container { display:flex; flex-direction:column; min-height:100vh; }
-  header { background:linear-gradient(to right, #004baf, #0073ff); padding:15px; text-align:center; box-shadow:0 0 20px rgba(0,115,255,0.4); border-bottom:2px solid var(--neon); }
-  header h1 { font-family:'Exo 2',sans-serif; font-weight:900; font-size:20px; letter-spacing:2px; color:#fff; text-shadow:0 0 10px rgba(255,255,255,0.6); }
-  .nav-tabs { display:flex; background:var(--panel); border-bottom:1px solid var(--border); }
-  .tab-btn { flex:1; padding:15px; background:none; border:none; color:var(--dim); font-family:'Exo 2',sans-serif; font-weight:700; font-size:14px; cursor:pointer; text-align:center; transition:all 0.3s; border-bottom:3px solid transparent; text-transform:uppercase; }
-  .tab-btn.active { color:var(--neon); border-bottom-color:var(--neon); background:rgba(0,115,255,0.05); text-shadow:0 0 8px rgba(0,115,255,0.6); }
-  .tab-content { flex:1; display:none; padding:20px; max-width:1200px; width:100%; margin:0 auto; }
-  .tab-content.active { display:block; }
-  
-  /* SCANNER LAYOUT */
-  .sc-grid { display:grid; grid-template-columns:1fr; gap:20px; }
-  @media(min-width:768px) { .sc-grid { grid-template-columns:1.2fr 0.8fr; } }
-  .sc-card { background:var(--panel); border:1px solid var(--border); border-radius:8px; padding:20px; position:relative; overflow:hidden; }
-  .sc-card::before { content:''; position:absolute; top:0; left:0; width:4px; height:100%; background:var(--sc-v); }
-  .sc-title { font-family:'Exo 2',sans-serif; font-size:16px; font-weight:700; margin-bottom:15px; color:var(--sc-t2); display:flex; justify-content:between; align-items:center; border-bottom:1px solid var(--border); padding-bottom:8px; }
-  .sc-counter-badge { background:var(--sc-b); color:var(--sc-v); padding:2px 8px; border-radius:4px; font-size:12px; font-family:'Share Tech Mono',monospace; border:1px solid rgba(0,160,227,0.4); float:right; }
-  .sc-cam-box { background:var(--sc-bg); border:2px dashed var(--dim); aspect-ratio:4/3; border-radius:6px; position:relative; overflow:hidden; display:flex; justify-content:center; align-items:center; }
-  .sc-cam-box.active { border-color:var(--sc-v); box-shadow:inset 0 0 20px var(--sc-b); }
-  #sc-video { width:100%; height:100%; object-fit:cover; display:none; }
-  .sc-placeholder { text-align:center; color:var(--dim); font-size:14px; padding:20px; pointer-events:none; position:absolute; }
-  .sc-placeholder i { font-size:40px; color:var(--dim); margin-bottom:10px; display:block; }
-  .sc-laser { position:absolute; left:0; width:100%; height:3px; background:var(--neon2); box-shadow:0 0 12px var(--neon2); top:0; display:none; animation:scScan 2s linear infinite; pointer-events:none; z-index:10; }
-  @keyframes scScan { 0% { top:0%; } 50% { top:100%; } 100% { top:0%; } }
-  
-  .sc-btn-cam { width:100%; background:linear-gradient(#0088cc,#0055aa); border:none; color:#fff; padding:14px; font-family:'Exo 2',sans-serif; font-weight:700; border-radius:6px; cursor:pointer; font-size:15px; text-transform:uppercase; margin-top:15px; box-shadow:0 4px 10px rgba(0,85,170,0.3); transition:all 0.2s; }
-  .sc-btn-cam:active { transform:scale(0.98); }
-  .sc-btn-cam.stop { background:linear-gradient(#ff4466,#cc1133); box-shadow:0 4px 10px rgba(204,17,51,0.3); }
-  
-  .sc-res-panel { background:var(--sc-s); border:1px solid var(--border); border-radius:6px; padding:15px; min-height:100px; display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center; margin-top:15px; }
-  .sc-res-status { font-size:24px; font-weight:900; font-family:'Exo 2',sans-serif; margin-bottom:4px; letter-spacing:1px; }
-  .sc-res-status.standby { color:var(--dim); }
-  .sc-res-status.avi { color:#ffaa00; animation:scBlink 1s infinite; }
-  .sc-res-status.ok { color:#00cc88; text-shadow:0 0 10px rgba(0,208,136,0.4); }
-  .sc-res-status.err { color:#ff4466; text-shadow:0 0 10px rgba(255,68,102,0.4); }
-  @keyframes scBlink { 0%,100% { opacity:1; } 50% { opacity:0.5; } }
-  .sc-res-txt { font-size:16px; color:var(--sc-t); font-weight:700; margin-bottom:2px; }
-  .sc-res-sub { font-size:12px; color:var(--dim); }
-  
-  .sc-manual-box { margin-top:15px; display:flex; gap:10px; }
-  .sc-input { flex:1; background:var(--sc-bg); border:1px solid var(--border); border-radius:6px; padding:12px; color:#fff; font-family:'Share Tech Mono',monospace; font-size:16px; text-align:center; }
-  .sc-input:focus { border-color:var(--sc-v); outline:none; }
-  .sc-btn-send { background:var(--sc-s2); border:1px solid var(--sc-v); color:var(--sc-t2); padding:0 20px; font-family:'Exo 2',sans-serif; font-weight:700; border-radius:6px; cursor:pointer; text-transform:uppercase; font-size:13px; transition:all 0.2s; }
-  .sc-btn-send:hover { background:var(--sc-v); color:#fff; }
-  
-  .sc-hist-list { display:flex; flex-direction:column; gap:8px; max-height:280px; overflow-y:auto; padding-right:4px; }
-  .sc-hist-list::-webkit-scrollbar { width:6px; }
-  .sc-hist-list::-webkit-scrollbar-thumb { background:var(--border); border-radius:3px; }
-  .sc-hi { background:var(--sc-s); border:1px solid rgba(26,42,74,0.5); padding:10px 12px; border-radius:6px; display:flex; justify-content:between; align-items:center; font-size:13px; }
-  .sc-hn { font-weight:700; color:var(--sc-t); }
-  .sc-hh { color:var(--dim); font-size:11px; }
-  .sc-hs { padding:2px 6px; border-radius:4px; font-size:10px; font-weight:700; text-transform:uppercase; }
-  .sc-hs.ok { background:rgba(0,204,136,0.15); color:#00cc88; }
-  .sc-hs.err { background:rgba(255,68,102,0.15); color:#ff4466; }
-  .sc-vazio { color:var(--dim); text-align:center; padding:30px 0; font-size:13px; }
-  .sc-btn-clear { background:none; border:none; color:var(--neon2); font-family:'Exo 2',sans-serif; font-size:11px; cursor:pointer; float:right; text-transform:uppercase; font-weight:700; margin-top:2px; }
-  .sc-btn-clear:hover { text-decoration:underline; }
+  body::before { content:''; position:fixed; inset:0; background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.03) 2px,rgba(0,0,0,0.03) 4px); pointer-events:none; z-index:9999; }
 
-  /* SORTEADOR LAYOUT */
-  .sort-grid { display:grid; grid-template-columns:1fr; gap:20px; }
-  @media(min-width:992px) { .sort-grid { grid-template-columns:1.2fr 0.8fr; } }
-  .sort-panel { background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:25px; box-shadow:0 10px 30px rgba(0,0,0,0.5); position:relative; }
-  .sort-panel::after { content:''; position:absolute; top:0; left:5%; width:90%; height:1px; background:linear-gradient(to right, transparent, var(--neon), transparent); }
-  .sort-header { display:flex; justify-content:between; align-items:center; margin-bottom:20px; border-bottom:1px solid var(--border); padding-bottom:12px; }
-  .sort-title { font-family:'Exo 2',sans-serif; font-size:18px; font-weight:900; color:#fff; letter-spacing:1px; text-transform:uppercase; }
-  .sort-counter-box { background:var(--panel2); border:1px solid var(--border); padding:8px 16px; border-radius:8px; text-align:center; box-shadow:inset 0 0 10px rgba(0,0,0,0.5); }
-  .sort-counter-lbl { font-size:10px; color:var(--dim); text-transform:uppercase; letter-spacing:1px; margin-bottom:2px; }
-  .sort-counter-num { font-size:20px; font-weight:900; color:var(--neon); text-shadow:0 0 8px rgba(0,115,255,0.5); font-family:'Share Tech Mono',monospace; }
-  
-  .roulette-container { position:relative; width:100%; max-width:440px; margin:0 auto 25px auto; aspect-ratio:1; display:flex; justify-content:center; align-items:center; }
-  #rouletteCanvas { width:100%; height:100%; background:rgba(0,0,0,0.2); border-radius:50%; box-shadow:0 0 25px rgba(0,0,0,0.8), 0 0 2px var(--border); pointer-events:none; }
-  .roulette-arrow { position:absolute; top:0; left:50%; transform:translateX(-50%); width:0; height:0; border-left:16px solid transparent; border-right:16px solid transparent; border-top:28px solid var(--neon2); filter:drop-shadow(0 0 6px var(--neon2)); z-index:20; }
-  .roulette-center { position:absolute; width:40px; height:40px; background:#fff; border-radius:50%; box-shadow:0 0 15px rgba(0,0,0,0.6); z-index:15; display:flex; justify-content:center; align-items:center; border:4px solid var(--panel); }
-  .roulette-center::before { content:''; width:12px; height:12px; background:var(--neon2); border-radius:50%; }
-  
-  .sort-btn-trigger { width:100%; background:linear-gradient(135deg, #ff4466, #cc1133); border:none; color:#fff; padding:18px; font-family:'Exo 2',sans-serif; font-weight:900; font-size:18px; border-radius:8px; cursor:pointer; text-transform:uppercase; letter-spacing:2px; box-shadow:0 6px 20px rgba(204,17,51,0.4), inset 0 1px rgba(255,255,255,0.2); transition:all 0.2s; position:relative; overflow:hidden; }
-  .sort-btn-trigger:hover { filter:brightness(1.1); box-shadow:0 8px 25px rgba(204,17,51,0.6); }
-  .sort-btn-trigger:active { transform:translateY(2px); box-shadow:0 3px 10px rgba(204,17,51,0.4); }
-  .sort-btn-trigger:disabled { background:var(--border); color:var(--dim); box-shadow:none; cursor:not-allowed; filter:none; }
-  
-  .winner-overlay { position:absolute; inset:0; background:rgba(7,8,15,0.95); z-index:100; border-radius:12px; display:none; flex-direction:column; justify-content:center; align-items:center; text-align:center; padding:20px; animation:sortFadeIn 0.3s ease-out; border:2px solid var(--neon); }
-  @keyframes sortFadeIn { from { opacity:0; } to { opacity:1; } }
-  .winner-title { font-family:'Exo 2',sans-serif; font-weight:900; font-size:24px; color:var(--neon); margin-bottom:10px; letter-spacing:2px; text-shadow:0 0 10px rgba(0,115,255,0.5); }
-  .winner-card { background:linear-gradient(135deg, var(--panel), var(--panel2)); border:2px solid var(--border); padding:30px 50px; border-radius:12px; margin-bottom:25px; box-shadow:0 0 30px rgba(0,115,255,0.2); position:relative; }
-  .winner-num { font-size:64px; font-weight:900; color:#fff; font-family:'Exo 2',sans-serif; text-shadow:0 0 20px rgba(255,255,255,0.4); line-height:1; }
-  .winner-btn-close { background:var(--panel2); border:1px solid var(--border); color:var(--text); padding:10px 24px; font-family:'Exo 2',sans-serif; font-weight:700; border-radius:6px; cursor:pointer; text-transform:uppercase; font-size:13px; transition:all 0.2s; }
-  .winner-btn-close:hover { border-color:var(--neon2); color:var(--neon2); }
-  
-  .hist-box { background:var(--panel2); border:1px solid var(--border); border-radius:8px; padding:15px; }
-  .hist-title { font-family:'Exo 2',sans-serif; font-size:14px; font-weight:700; margin-bottom:12px; color:var(--dim); text-transform:uppercase; letter-spacing:1px; }
-  .hist-tags { display:flex; flex-wrap:wrap; gap:8px; max-height:400px; overflow-y:auto; }
-  .hist-tag { background:var(--panel); border:1px solid var(--border); color:#fff; padding:8px 14px; border-radius:6px; font-size:14px; font-weight:700; display:flex; align-items:center; gap:6px; animation:sortPop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
-  @keyframes sortPop { from { transform:scale(0.8); opacity:0; } to { transform:scale(1); opacity:1; } }
-  .hist-tag-idx { font-size:10px; color:var(--dim); background:rgba(0,0,0,0.3); padding:2px 4px; border-radius:3px; }
-  .hist-vazio { color:var(--dim); font-size:12px; text-align:center; width:100%; padding:20px 0; }
+  /* ── SCANNER ── */
+  .sc-section { background:var(--sc-bg); display:flex; flex-direction:column; align-items:center; }
+  .sc-header { width:100%; background:var(--sc-s); border-bottom:1px solid var(--sc-b); padding:14px 20px 18px; display:flex; flex-direction:column; align-items:center; gap:2px; position:sticky; top:0; z-index:100; }
+  .sc-logo { font-size:11px; letter-spacing:.18em; color:var(--sc-t2); text-transform:uppercase; }
+  .sc-cnt  { font-size:52px; font-weight:900; color:var(--sc-v); letter-spacing:-1px; line-height:1; font-family:'Exo 2',sans-serif; }
+  .sc-cnt-label { font-size:11px; color:var(--sc-t2); letter-spacing:.12em; text-transform:uppercase; }
+  .sc-main { width:100%; max-width:480px; padding:16px; display:flex; flex-direction:column; gap:14px; }
+  .sc-camera-wrap { position:relative; width:100%; aspect-ratio:1; background:#000; border-radius:12px; overflow:hidden; border:1px solid var(--sc-b); }
+  #sc-video { width:100%; height:100%; object-fit:cover; display:block; }
+  .sc-overlay { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; pointer-events:none; }
+  .sc-frame { width:70%; aspect-ratio:3; border:2px solid var(--sc-v); border-radius:4px; position:relative; box-shadow:0 0 0 9999px rgba(0,0,0,0.45); }
+  .sc-line { position:absolute; top:0; left:0; right:0; height:2px; background:var(--sc-v); animation:sc-scan 1.8s linear infinite; }
+  @keyframes sc-scan { 0%,100%{top:0} 50%{top:calc(100% - 2px)} }
+  .sc-cn { position:absolute; width:14px; height:14px; border-color:var(--sc-v); border-style:solid; }
+  .sc-tl{top:-2px;left:-2px;border-width:3px 0 0 3px;border-radius:3px 0 0 0}
+  .sc-tr{top:-2px;right:-2px;border-width:3px 3px 0 0;border-radius:0 3px 0 0}
+  .sc-bl{bottom:-2px;left:-2px;border-width:0 0 3px 3px;border-radius:0 0 0 3px}
+  .sc-br{bottom:-2px;right:-2px;border-width:0 3px 3px 0;border-radius:0 0 3px 0}
+  .sc-hint { position:absolute; bottom:10px; left:0; right:0; text-align:center; font-size:11px; color:rgba(255,255,255,.55); letter-spacing:.08em; }
+  .sc-card { background:var(--sc-s); border:1px solid var(--sc-b); border-radius:12px; padding:14px; }
+  .sc-ctitle { font-size:11px; letter-spacing:.12em; color:var(--sc-v); text-transform:uppercase; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center; }
+  .sc-ctitle span { font-size:11px; color:#666; cursor:pointer; text-transform:none; letter-spacing:0; }
+  .sc-input { width:100%; background:var(--sc-s2); border:1px solid var(--sc-b); border-radius:8px; padding:10px 12px; color:var(--sc-t); font-family:'Share Tech Mono',monospace; font-size:14px; outline:none; }
+  .sc-input:focus { border-color:var(--sc-v); }
+  .sc-input::placeholder { color:#445; }
+  .sc-row { display:flex; gap:8px; }
+  .sc-row .sc-input { flex:1; }
+  .sc-btn { padding:11px 18px; border-radius:8px; border:none; font-family:'Exo 2',sans-serif; font-size:13px; letter-spacing:.08em; text-transform:uppercase; cursor:pointer; font-weight:bold; transition:all .15s; }
+  .sc-btn-v { background:var(--sc-v); color:#fff; }
+  .sc-btn-v:active { background:#0077aa; transform:scale(.97); }
+  .sc-btn-cancel { background:transparent; border:1px solid rgba(226,75,74,.5); color:#E24B4A; }
+  .sc-confirm-box { border-radius:12px; padding:16px; border:2px solid var(--sc-v); background:rgba(0,160,227,.07); animation:sc-fi .2s ease; }
+  .sc-confirm-num { font-size:36px; font-weight:bold; color:var(--sc-v); text-align:center; letter-spacing:.05em; margin:8px 0 4px; font-family:'Exo 2',sans-serif; }
+  .sc-confirm-label { text-align:center; font-size:12px; color:var(--sc-t2); letter-spacing:.1em; text-transform:uppercase; margin-bottom:16px; }
+  .sc-confirm-btns { display:flex; gap:10px; }
+  .sc-confirm-btns .sc-btn { flex:1; padding:13px; font-size:14px; }
+  .sc-res { border-radius:10px; padding:13px 15px; display:flex; align-items:center; gap:12px; animation:sc-fi .25s ease; }
+  @keyframes sc-fi { from{opacity:0;transform:translateY(-6px)} to{opacity:1;transform:translateY(0)} }
+  .sc-res.ok  { background:rgba(0,160,227,.1);  border:1px solid rgba(0,160,227,.35); }
+  .sc-res.err { background:rgba(226,75,74,.12); border:1px solid rgba(226,75,74,.3); }
+  .sc-res.avi { background:rgba(239,159,39,.12);border:1px solid rgba(239,159,39,.3); }
+  .sc-ri { font-size:22px; flex-shrink:0; }
+  .sc-rt strong { display:block; font-size:14px; margin-bottom:2px; color:var(--sc-t); }
+  .sc-rt span { font-size:12px; color:var(--sc-t2); }
+  .sc-hist { display:flex; flex-direction:column; gap:6px; max-height:200px; overflow-y:auto; }
+  .sc-hi { display:flex; align-items:center; justify-content:space-between; background:var(--sc-s2); border-radius:8px; padding:7px 11px; font-size:12px; color:var(--sc-t); }
+  .sc-hn { color:var(--sc-v); font-weight:bold; }
+  .sc-hh { color:#556; font-size:11px; }
+  .sc-hs { font-size:11px; padding:2px 8px; border-radius:20px; }
+  .sc-hs.ok  { background:rgba(0,160,227,.18); color:var(--sc-v); }
+  .sc-hs.err { background:rgba(226,75,74,.2);  color:#E24B4A; }
+  .sc-vazio { text-align:center; color:#556; font-size:12px; padding:16px 0; }
+  #sc-status { font-size:12px; color:var(--sc-t2); text-align:center; padding:6px 0; min-height:22px; }
+
+  /* ── DIVIDER ── */
+  .section-divider { width:100%; height:2px; background:linear-gradient(90deg,transparent,#0073ff55,transparent); }
+
+  /* ── SORTEADOR ── */
+  .sort-section { display:flex; flex-direction:column; align-items:center; padding:0 16px 32px; background:var(--bg); }
+  .sort-header { width:100%; max-width:480px; padding:20px 0 12px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid var(--border); margin-bottom:16px; }
+  .sort-header h1 { font-family:'Exo 2',sans-serif; font-size:1.2rem; font-weight:900; letter-spacing:3px; text-transform:uppercase; color:#fff; }
+  .sort-header h1 span { color:var(--neon); }
+  .sort-header p { font-size:.6rem; color:var(--dim); letter-spacing:2px; text-transform:uppercase; margin-top:2px; }
+  .version-badge { font-size:.6rem; font-family:'Share Tech Mono',monospace; color:var(--dim); border:1px solid var(--border); border-radius:20px; padding:3px 10px; letter-spacing:1px; white-space:nowrap; }
+  .sort-counter { width:100%; max-width:480px; background:var(--panel); border:1px solid var(--border); border-radius:10px; padding:14px 20px; display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; }
+  .sort-counter-label { font-size:.65rem; letter-spacing:3px; text-transform:uppercase; color:var(--dim); }
+  .sort-counter-num { font-family:'Exo 2',sans-serif; font-size:2rem; font-weight:900; color:var(--neon); letter-spacing:-1px; line-height:1; }
+  .sort-counter-status { font-size:.6rem; color:var(--dim); margin-top:2px; letter-spacing:1px; }
+  .sort-counter-refresh { background:transparent; border:1px solid var(--border); border-radius:6px; color:var(--dim); font-family:'Share Tech Mono',monospace; font-size:.65rem; padding:6px 12px; cursor:pointer; transition:all .2s; letter-spacing:1px; }
+  .sort-counter-refresh:hover { border-color:var(--neon); color:var(--neon); }
+  .sort-main { width:100%; max-width:480px; display:flex; flex-direction:column; gap:16px; }
+  .roulette-wrap { display:flex; flex-direction:column; align-items:center; gap:16px; padding:24px; background:var(--panel); border:1px solid var(--border); border-radius:8px; }
+  #rouletteCanvas { display:block; filter:drop-shadow(0 0 30px rgba(0,115,255,.25)); max-width:100%; }
+  .btn-sortear { padding:14px 40px; font-family:'Exo 2',sans-serif; font-size:1rem; font-weight:900; letter-spacing:4px; text-transform:uppercase; color:#fff; background:linear-gradient(135deg,#0052cc,#0073ff); border:none; border-radius:6px; cursor:pointer; transition:all .2s; }
+  .btn-sortear:hover:not(:disabled) { box-shadow:0 0 24px rgba(0,115,255,.5); transform:translateY(-2px); }
+  .btn-sortear:disabled { opacity:.4; cursor:not-allowed; }
+  .result-panel { background:var(--panel); border:1px solid var(--border); border-radius:8px; padding:20px; display:flex; align-items:center; gap:16px; }
+  .result-icon { font-size:2rem; }
+  .result-label { font-size:.6rem; letter-spacing:3px; text-transform:uppercase; color:var(--dim); margin-bottom:6px; }
+  #resultText { font-family:'Exo 2',sans-serif; font-size:1.4rem; font-weight:900; color:var(--neon); letter-spacing:2px; }
+  .history-panel { background:var(--panel); border:1px solid var(--border); border-radius:8px; overflow:hidden; }
+  .history-header { display:flex; align-items:center; justify-content:space-between; padding:12px 16px; border-bottom:1px solid var(--border); font-size:.7rem; letter-spacing:2px; text-transform:uppercase; }
+  .history-count { background:var(--neon); color:#fff; font-family:'Exo 2',sans-serif; font-size:.75rem; font-weight:700; padding:2px 8px; border-radius:20px; }
+  #historyList { max-height:200px; overflow-y:auto; padding:8px; display:flex; flex-direction:column; gap:4px; }
+  .history-entry { display:flex; align-items:center; gap:10px; padding:8px 12px; background:rgba(0,115,255,.05); border:1px solid var(--border); border-radius:4px; }
+  .h-num { font-family:'Exo 2',sans-serif; font-weight:700; color:var(--neon); min-width:60px; }
+  .h-label { flex:1; font-size:.8rem; color:var(--text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .h-badge { font-size:.6rem; letter-spacing:1px; padding:2px 8px; border:1px solid var(--dim); border-radius:20px; color:var(--dim); white-space:nowrap; }
+  .h-badge.winner { border-color:gold; color:gold; }
+  .empty-hint { padding:20px; text-align:center; color:var(--dim); font-size:.75rem; letter-spacing:2px; }
 </style>
-<script src="https://unpkg.com/@zxing/library@latest"></script>
 </head>
 <body>
 
-<div class="app-container">
-  <header>
-    <h1>ACIAPAR — SCANNER &amp; SORTEADOR</h1>
-  </header>
-
-  <div class="nav-tabs">
-    <button class="tab-btn active" onclick="mudarAba('scanner')">🎟️ Scanner de Convites</button>
-    <button class="tab-btn" onclick="mudarAba('sorteador')">🎰 Sorteador Digital</button>
+<!-- SCANNER -->
+<section class="sc-section">
+  <div class="sc-header">
+    <div class="sc-logo">&#9642; Scanner de Presenca</div>
+    <div class="sc-cnt" id="sc-cnt">0</div>
+    <div class="sc-cnt-label">presencas registradas</div>
   </div>
-
-  <div id="tab-scanner" class="tab-content active">
-    <div class="sc-grid">
-      <div class="sc-card">
-        <div class="sc-title">
-          Leitor de Código QR / Barra
-          <span class="sc-counter-badge">Sincronizados: <span id="sc-cnt">—</span></span>
-        </div>
-        
-        <div class="sc-cam-box" id="sc-canvas">
-          <div class="sc-laser" id="sc-laser"></div>
-          <video id="sc-video" playsinline></video>
-          <div class="sc-placeholder" id="sc-prompt">
-            <i>📷</i>
-            Câmera desligada
-          </div>
-        </div>
-        
-        <button id="sc-btn" class="sc-btn-cam" onclick="scAlternarCam()">Ligar Câmera</button>
-        
-        <div class="sc-manual-box">
-          <input type="number" id="sc-manual-input" class="sc-input" placeholder="Nº do Convite (1-400)" min="1" max="400">
-          <button class="sc-btn-send" onclick="scEnviarManual()">Registrar</button>
+  <div class="sc-main">
+    <div class="sc-camera-wrap">
+      <video id="sc-video" autoplay playsinline muted></video>
+      <div class="sc-overlay">
+        <div class="sc-frame">
+          <div class="sc-line"></div>
+          <div class="sc-cn sc-tl"></div><div class="sc-cn sc-tr"></div>
+          <div class="sc-cn sc-bl"></div><div class="sc-cn sc-br"></div>
         </div>
       </div>
-
-      <div class="sc-card">
-        <div class="sc-title">
-          Painel de Resposta
-        </div>
-        <div class="sc-res-panel">
-          <div id="sc-res-st" class="sc-res-status standby">STANDBY</div>
-          <div id="sc-res-tx" class="sc-res-txt">Aguardando leitura de convite</div>
-          <div id="sc-res-sb" class="sc-res-sub">Posicione o código na área da câmera</div>
-        </div>
-
-        <div class="sc-title" style="margin-top:20px; margin-bottom:10px;">
-          Fluxo de Leituras Recentes
-          <button class="sc-btn-clear" onclick="scLimpar()">Limpar</button>
-        </div>
-        <div class="sc-hist-list" id="sc-hist">
-          <div class="sc-vazio">Nenhum código lido ainda</div>
-        </div>
+      <div class="sc-hint">APONTE PARA O CODIGO DE BARRAS</div>
+    </div>
+    <div id="sc-status">Iniciando camera...</div>
+    <button class="sc-btn sc-btn-v" id="sc-btn-retry" style="display:none;width:100%" onclick="scLigarCamera()">Tentar Novamente</button>
+    <div id="sc-confirm-wrap" style="display:none"></div>
+    <div id="sc-res-wrap"></div>
+    <div class="sc-card">
+      <div class="sc-ctitle">&#9632; Entrada Manual</div>
+      <div class="sc-row">
+        <input type="text" class="sc-input" id="sc-inp" placeholder="Digite o numero (1-400)" inputmode="numeric" pattern="[0-9]*"/>
+        <button class="sc-btn sc-btn-v" style="white-space:nowrap" onclick="scRegistrarManual()">OK</button>
       </div>
     </div>
+    <div class="sc-card">
+      <div class="sc-ctitle">&#9632; Historico <span onclick="scLimpar()">limpar</span></div>
+      <div class="sc-hist" id="sc-hist"><div class="sc-vazio">Nenhum codigo lido ainda</div></div>
+    </div>
+    <div style="height:8px"></div>
+  </div>
+</section>
+
+<div class="section-divider"></div>
+
+<!-- SORTEADOR -->
+<section class="sort-section">
+  <div class="sort-header">
+    <div>
+      <h1>&#127920; <span>SORTEADOR</span> ACIAPAR</h1>
+      <p>Animacao de Roleta &middot; Selecao Aleatoria</p>
+    </div>
+    <span class="version-badge">v2.0</span>
   </div>
 
-  <div id="tab-sorteador" class="tab-content">
-    <div class="sort-grid">
-      <div class="sort-panel">
-        <div class="winner-overlay" id="winnerOverlay">
-          <div class="winner-title">🎉 NÚMERO SORTEADO! 🎉</div>
-          <div class="winner-card">
-            <div class="winner-num" id="winnerNum">000</div>
-          </div>
-          <button class="winner-btn-close" onclick="fecharVencedor()">Confirmar &amp; Retornar</button>
-        </div>
+  <div class="sort-counter">
+    <div>
+      <div class="sort-counter-label">Participantes disponiveis</div>
+      <div class="sort-counter-num" id="totalCount">—</div>
+      <div class="sort-counter-status" id="sheetsStatusText">Carregando...</div>
+    </div>
+    <button class="sort-counter-refresh" onclick="carregarPresentes()">&#8635; Atualizar</button>
+  </div>
 
-        <div class="sort-header">
-          <div class="sort-title">Roleta de Prêmios</div>
-          <div class="sort-counter-box">
-            <div class="sort-counter-lbl">Presentes Aptos</div>
-            <div class="sort-counter-num" id="totalCount">—</div>
-          </div>
-        </div>
-
-        <div class="roulette-container">
-          <div class="roulette-arrow"></div>
-          <div class="roulette-center"></div>
-          <canvas id="rouletteCanvas" width="500" height="500"></canvas>
-        </div>
-
-        <button class="sort-btn-trigger" id="btnSortear" onclick="iniciarSorteio()">SORTEAR NÚMERO</button>
-      </div>
-
-      <div class="sort-panel">
-        <div class="hist-box">
-          <div class="hist-title">Histórico de Ganhadores</div>
-          <div class="hist-tags" id="sortHistory">
-            <div class="hist-vazio">Nenhum sorteio realizado nesta rodada</div>
-          </div>
-        </div>
+  <div class="sort-main">
+    <div class="roulette-wrap">
+      <canvas id="rouletteCanvas" width="400" height="340"></canvas>
+      <button class="btn-sortear" id="btnSortear" disabled onclick="startDraw()">&#127922; &nbsp;SORTEAR!</button>
+    </div>
+    <div class="result-panel">
+      <div class="result-icon">&#127942;</div>
+      <div>
+        <div class="result-label">&#11042; Resultado do Sorteio &#11042;</div>
+        <div id="resultText">Aguardando sorteio...</div>
       </div>
     </div>
+    <div class="history-panel">
+      <div class="history-header">
+        <span>&#128220; Historico de Sorteios</span>
+        <span class="history-count" id="historyCount">0</span>
+      </div>
+      <div id="historyList"><div class="empty-hint">Os sorteios aparecerao aqui</div></div>
+    </div>
   </div>
-</div>
+</section>
 
 <script>
-// CONFIGURAÇÃO DOS WEB APPS (URLs DO GOOGLE APPS SCRIPT)
-const SC_URL = "https://script.google.com/macros/s/AKfycbzL7K6iF-zbybU8r9mBvI6Vun1g_BqZp88_5wTidXw4qP4I549A1S-RfeRk0vYQ_5g8/exec";
-const GS_URL = "https://script.google.com/macros/s/AKfycbzL7K6iF-zbybU8r9mBvI6Vun1g_BqZp88_5wTidXw4qP4I549A1S-RfeRk0vYQ_5g8/exec";
+// ─── State ───────────────────────────────────────────────────────────
+let allData = [];
+let history = [];
+let spinning = false;
+let angle = 0;
+let animFrameId = null;
+let colIndex = 0;
 
-function mudarAba(aba) {
-  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-  if(aba === 'scanner') {
-    document.querySelectorAll('.tab-btn')[0].classList.add('active');
-    document.getElementById('tab-scanner').classList.add('active');
-  } else {
-    document.querySelectorAll('.tab-btn')[1].classList.add('active');
-    document.getElementById('tab-sorteador').classList.add('active');
-    carregarPresentes();
+
+
+// ─── Canvas ──────────────────────────────────────────────────────────
+const canvas = document.getElementById('rouletteCanvas');
+const ctx = canvas.getContext('2d');
+const CX = canvas.width / 2;
+const CY = canvas.height / 2;
+const R = 130;
+// ─── Fallback drawn wheel ───
+const wheelCanvas = document.createElement('canvas');
+wheelCanvas.width = 300; wheelCanvas.height = 300;
+const wctx = wheelCanvas.getContext('2d');
+(function drawFallback() {
+  const wc = wctx, wx = 150, wy = 150, wr = 140;
+  const bezelG = wc.createRadialGradient(wx-38, wy-38, wr*0.55, wx, wy, wr);
+  bezelG.addColorStop(0,'#f5f5f5'); bezelG.addColorStop(0.5,'#b0b2b8'); bezelG.addColorStop(1,'#606268');
+  wc.beginPath(); wc.arc(wx,wy,wr,0,Math.PI*2); wc.fillStyle=bezelG; wc.fill();
+  const discR = wr*0.855;
+  const discG = wc.createRadialGradient(wx-22,wy-22,discR*0.1,wx,wy,discR);
+  discG.addColorStop(0,'#d4d6dc'); discG.addColorStop(1,'#82848e');
+  wc.beginPath(); wc.arc(wx,wy,discR,0,Math.PI*2); wc.fillStyle=discG; wc.fill();
+  const cols = ['#cc1a28','#1e3ab8','#1e3ab8','#9ea2b2','#1e3ab8','#1e3ab8'];
+  const SA = Math.PI*2/6;
+  for(let i=0;i<6;i++){
+    const a = -Math.PI/2 + i*SA;
+    const g = wc.createLinearGradient(wx+discR*0.2*Math.cos(a+SA/2),wy+discR*0.2*Math.sin(a+SA/2),
+                                      wx+discR*0.9*Math.cos(a+SA/2),wy+discR*0.9*Math.sin(a+SA/2));
+    g.addColorStop(0,cols[i]+'cc'); g.addColorStop(1,cols[i]+'44');
+    wc.beginPath(); wc.moveTo(wx,wy); wc.arc(wx,wy,discR,a,a+SA); wc.closePath();
+    wc.fillStyle=g; wc.fill();
+  }
+  wc.beginPath(); wc.arc(wx,wy,10,0,Math.PI*2); wc.fillStyle='#ccc'; wc.fill();
+})();
+
+
+function drawRoulette(items = [], ang = 0) {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // Subtle radial glow behind wheel
+  const glow = ctx.createRadialGradient(CX, CY, R * 0.3, CX, CY, R + 50);
+  glow.addColorStop(0,   'rgba(0,80,200,0.0)');
+  glow.addColorStop(0.7, 'rgba(0,60,160,0.08)');
+  glow.addColorStop(1,   'rgba(0,115,255,0.14)');
+  ctx.beginPath();
+  ctx.arc(CX, CY, R + 50, 0, Math.PI * 2);
+  ctx.fillStyle = glow;
+  ctx.fill();
+
+  // ── Draw rotating wheel: use real image if loaded, fallback canvas otherwise
+  ctx.save();
+  ctx.translate(CX, CY);
+  ctx.rotate(ang);
+
+  // Clip to circle
+  ctx.beginPath();
+  ctx.arc(0, 0, R, 0, Math.PI * 2);
+  ctx.clip();
+
+  const src = wheelCanvas;
+  ctx.drawImage(src, -R, -R, R * 2, R * 2);
+
+  ctx.restore();
+
+  // ── Outer chrome ring matching the image bezel ──
+  // Dark inset shadow
+  const rimShadow = ctx.createRadialGradient(CX, CY, R - 6, CX, CY, R + 14);
+  rimShadow.addColorStop(0,   'rgba(0,0,0,0)');
+  rimShadow.addColorStop(0.5, 'rgba(0,0,0,0.25)');
+  rimShadow.addColorStop(1,   'rgba(0,0,0,0)');
+  ctx.beginPath();
+  ctx.arc(CX, CY, R + 14, 0, Math.PI * 2);
+  ctx.fillStyle = rimShadow;
+  ctx.fill();
+
+  // Chrome bezel ring
+  const rimGrad = ctx.createLinearGradient(CX - R, CY - R, CX + R, CY + R);
+  rimGrad.addColorStop(0.0,  'rgba(255,255,255,0.55)');
+  rimGrad.addColorStop(0.25, 'rgba(200,202,208,0.40)');
+  rimGrad.addColorStop(0.5,  'rgba(140,142,148,0.30)');
+  rimGrad.addColorStop(0.75, 'rgba(100,102,108,0.40)');
+  rimGrad.addColorStop(1.0,  'rgba(60,62,68,0.50)');
+  ctx.beginPath();
+  ctx.arc(CX, CY, R + 2, 0, Math.PI * 2);
+  ctx.strokeStyle = rimGrad;
+  ctx.lineWidth = 10;
+  ctx.stroke();
+
+  // Inner bright edge line
+  ctx.beginPath();
+  ctx.arc(CX, CY, R - 1, 0, Math.PI * 2);
+  ctx.strokeStyle = 'rgba(255,255,255,0.18)';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
+  // Specular flare top-left on bezel
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(CX, CY, R + 7, -Math.PI * 0.9, -Math.PI * 0.15);
+  ctx.arc(CX, CY, R - 4, -Math.PI * 0.15, -Math.PI * 0.9, true);
+  ctx.closePath();
+  const flare = ctx.createLinearGradient(CX - R, CY - R, CX + R * 0.2, CY + R * 0.2);
+  flare.addColorStop(0, 'rgba(255,255,255,0.50)');
+  flare.addColorStop(0.5, 'rgba(255,255,255,0.12)');
+  flare.addColorStop(1, 'rgba(255,255,255,0.00)');
+  ctx.fillStyle = flare;
+  ctx.fill();
+  ctx.restore();
+
+  // ── Participant name labels orbiting outside the wheel ──────────────
+  if (items.length > 0) {
+    const labelR = R + 26;
+    const n = items.length;
+    const sliceAng = (Math.PI * 2) / n;
+    ctx.font = 'bold 9px "Exo 2", sans-serif';
+    for (let i = 0; i < n; i++) {
+      const a = ang + i * sliceAng + sliceAng / 2;
+      const lx = CX + labelR * Math.cos(a);
+      const ly = CY + labelR * Math.sin(a);
+      const label = String(items[i]).length > 11 ? String(items[i]).slice(0, 11) + '…' : String(items[i]);
+
+      ctx.save();
+      ctx.translate(lx, ly);
+      ctx.rotate(a + Math.PI / 2);
+
+      const tw = ctx.measureText(label).width + 12;
+      // Pill background
+      ctx.fillStyle = 'rgba(5,10,30,0.88)';
+      ctx.strokeStyle = 'rgba(0,115,255,0.4)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.roundRect(-tw / 2, -9, tw, 18, 5);
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.fillStyle = '#dce8ff';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(label, 0, 0);
+      ctx.restore();
+    }
+  }
+
+  // ── Fixed arrow pointer at top ──────────────────────────────────────
+  const ax = CX, ay = CY - R - 8;
+  ctx.save();
+  ctx.shadowColor = 'rgba(255,30,30,0.9)';
+  ctx.shadowBlur = 14;
+  ctx.beginPath();
+  ctx.moveTo(ax - 13, ay - 22);
+  ctx.lineTo(ax + 13, ay - 22);
+  ctx.lineTo(ax,      ay + 6);
+  ctx.closePath();
+  const arrowGrad = ctx.createLinearGradient(ax, ay - 22, ax, ay + 6);
+  arrowGrad.addColorStop(0, '#ff6666');
+  arrowGrad.addColorStop(1, '#cc0000');
+  ctx.fillStyle = arrowGrad;
+  ctx.fill();
+  ctx.strokeStyle = '#880000';
+  ctx.lineWidth = 1.2;
+  ctx.stroke();
+  ctx.restore();
+
+  // Arrow circle cap
+  ctx.save();
+  ctx.shadowColor = 'rgba(255,30,30,0.7)';
+  ctx.shadowBlur = 8;
+  ctx.beginPath();
+  ctx.arc(ax, ay - 26, 6, 0, Math.PI * 2);
+  const capGrad = ctx.createRadialGradient(ax - 2, ay - 28, 1, ax, ay - 26, 6);
+  capGrad.addColorStop(0, '#ff9999');
+  capGrad.addColorStop(1, '#cc0000');
+  ctx.fillStyle = capGrad;
+  ctx.fill();
+  ctx.restore();
+}
+
+('input', function() {
+  document.getElementById('speedVal').textContent = this.value;
+});
+
+function updateRoulette() {
+  const sample = shuffle([...allData]).slice(0, 15).map(r => r[colIndex]);
+  drawRoulette(sample, angle);
+}
+
+// ─── Google Sheets — carregar presentes ──────────────────────────────
+var GS_URL = 'https://script.google.com/macros/s/AKfycby-q26kGx0JxVEjZxYmFifjRvldlI4kQ6dyfpCIt6DrXtXObteMBf3Piasw4_xYLm-c/exec';
+
+function setSheetStatus(msg, ok) {
+  var el = document.getElementById('sheetsStatusText'); if (el) el.textContent = msg;
+}
+
+async function carregarPresentes() {
+  setSheetStatus('Buscando dados...', null);
+  document.getElementById('totalCount').textContent = '…';
+  document.getElementById('btnSortear').disabled = true;
+  try {
+    const resp = await fetch(GS_URL + '?acao=presentes');
+    const data = await resp.json();
+    if (data.status !== 'sucesso' || !data.numeros || data.numeros.length === 0) {
+      setSheetStatus('Nenhum presente encontrado', false);
+      document.getElementById('totalCount').textContent = '0';
+      allData = [];
+      drawRoulette([], angle);
+      return;
+    }
+    allData = data.numeros.map(n => [String(n)]);
+    colIndex = 0;
+    document.getElementById('totalCount').textContent = allData.length;
+    document.getElementById('btnSortear').disabled = false;
+    setSheetStatus('✓ ' + allData.length + ' presentes carregados', true);
+    updateRoulette();
+  } catch(e) {
+    setSheetStatus('Erro de conexão', false);
+    document.getElementById('totalCount').textContent = '!';
   }
 }
 
-// ------------------------------------
-// MOTOR DO SCANNER (ZXIING)
-// ------------------------------------
-var scReader = null;
-var scCamAtiva = false;
-var scHistorico = [];
-const SC_HIST_KEY = 'aciapar_sc_hist_v2';
-
-try { scHistorico = JSON.parse(localStorage.getItem(SC_HIST_KEY)) || []; } catch(e){}
-
-document.addEventListener("DOMContentLoaded", function() {
-  scRenderHist();
-  scAtualizarCnt();
-  setInterval(scAtualizarCnt, 15000);
-});
-
-function scAlternarCam() {
-  if (scCamAtiva) scDesligarCam(); else scLigarCam();
+function shuffle(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
 }
 
-function scLigarCam() {
-  if(!scReader) scReader = new ZXing.BrowserMultiFormatReader();
-  var vEl = document.getElementById('sc-video');
-  var pEl = document.getElementById('sc-prompt');
-  var bEl = document.getElementById('sc-btn');
-  var lEl = document.getElementById('sc-laser');
-  var cEl = document.getElementById('sc-canvas');
 
-  pEl.innerHTML = '<i>⏳</i> Solicitando acesso à câmera...';
-  
-  scReader.decodeFromVideoDevice(null, 'sc-video', function(res, err) {
-    if (res) {
-      var num = parseInt(res.getText().trim());
-      if (!isNaN(num)) scRegistrarPresenca(num);
+// ─── Sorteio ──────────────────────────────────────────────────────────
+function startDraw() {
+  if (spinning || allData.length === 0) return;
+
+  const winner = allData[Math.floor(Math.random() * allData.length)];
+
+  spinning = true;
+  canvas.classList.add('spinning');
+  document.getElementById('btnSortear').disabled = true;
+  document.getElementById('resultText').textContent = '🎲 Sorteando...';
+  document.getElementById('resultText').className = '';
+  const totalRotation = (Math.PI * 2) * (3 + Math.floor(Math.random() * 4)) + Math.random() * Math.PI * 2;
+  const duration = 3000 + Math.random() * 2000;
+  const startTime = performance.now();
+  const startAngle = angle;
+
+  function animate(now) {
+    const elapsed = now - startTime;
+    const t = Math.min(elapsed / duration, 1);
+    // Easing: fast start, slow end
+    const eased = 1 - Math.pow(1 - t, 3);
+
+    angle = startAngle + totalRotation * eased;
+
+    // Shuffle names while spinning
+    if (t < 0.85) {
+      const sample = shuffle([...allData]).slice(0, 15).map(r => r[colIndex]);
+      drawRoulette(sample, angle);
+    } else {
+      // Show final layout converging
+      drawRoulette([winner[colIndex]], angle);
     }
-  }).then(() => {
-    scCamAtiva = true;
-    vEl.style.display = 'block';
-    pEl.style.display = 'none';
-    lEl.style.display = 'block';
-    cEl.classList.add('active');
-    bEl.textContent = 'Desligar Câmera';
-    bEl.classList.add('stop');
-  }).catch(function() {
-    pEl.innerHTML = '<i>❌</i> Erro ao iniciar câmera.<br>Verifique as permissões.';
-    scDesligarCam();
-  });
+
+    if (t < 1) {
+      animFrameId = requestAnimationFrame(animate);
+    } else {
+      finishDraw(winner);
+    }
+  }
+
+  requestAnimationFrame(animate);
 }
 
-function scDesligarCam() {
-  if (scReader) { scReader.reset(); }
-  scCamAtiva = false;
-  document.getElementById('sc-video').style.display = 'none';
-  document.getElementById('sc-prompt').style.display = 'block';
-  document.getElementById('sc-prompt').innerHTML = '<i>📷</i> Câmera desligada';
-  document.getElementById('sc-laser').style.display = 'none';
-  document.getElementById('sc-canvas').classList.remove('active');
-  var bEl = document.getElementById('sc-btn');
-  bEl.textContent = 'Ligar Câmera';
-  bEl.classList.remove('stop');
+function finishDraw(winner) {
+  spinning = false;
+  canvas.classList.remove('spinning');
+  const displayVal = String(winner[colIndex] !== undefined ? winner[colIndex] : winner[0]);
+
+  const resultEl = document.getElementById('resultText');
+  resultEl.textContent = `🏆 ${displayVal}`;
+  resultEl.className = 'active';
+
+  // Flash
+  let flashes = 0;
+  const flashInterval = setInterval(() => {
+    resultEl.style.opacity = resultEl.style.opacity === '0.3' ? '1' : '0.3';
+    if (++flashes >= 8) { clearInterval(flashInterval); resultEl.style.opacity = '1'; }
+  }, 150);
+
+  // Add to history
+  const now = new Date();
+  const time = now.toTimeString().slice(0, 8);
+  history.unshift({ value: displayVal, time });
+  renderHistory();
+
+  // Remove winner from list
+  const idx = allData.indexOf(winner);
+  if (idx > -1) allData.splice(idx, 1);
+  document.getElementById('totalCount').textContent = allData.length;
+
+  if (allData.length === 0) {
+    document.getElementById('btnSortear').disabled = true;
+    document.getElementById('resultText').textContent = '✅ Todos os participantes foram sorteados!';
+    document.getElementById('resultText').className = '';
+    drawRoulette([], angle);
+    return;
+  }
+
+  updateRoulette();
+  document.getElementById('btnSortear').disabled = false;
 }
 
-function scEnviarManual() {
-  var inp = document.getElementById('sc-manual-input');
-  var num = parseInt(inp.value);
-  if (isNaN(num) || num < 1 || num > 400) { alert('Digite um número válido entre 1 e 400'); return; }
-  inp.value = '';
-  scRegistrarPresenca(num);
+function renderHistory() {
+  const list = document.getElementById('historyList');
+  document.getElementById('historyCount').textContent = history.length;
+
+  if (history.length === 0) {
+    list.innerHTML = '<div class="empty-hint">Os sorteios aparecerão aqui</div>';
+    return;
+  }
+
+  list.innerHTML = history.map((h, i) => `
+    <div class="history-item">
+      <span class="num">#${history.length - i}</span>
+      <span class="time">${h.time}</span>
+      <span class="name">${h.value}</span>
+    </div>
+  `).join('');
 }
 
-function scMostrarRes(st, tit, txt, sub) {
-  var sEl = document.getElementById('sc-res-st');
-  var tEl = document.getElementById('sc-res-tx');
-  var bEl = document.getElementById('sc-res-sb');
-  sEl.className = 'sc-res-status ' + st;
-  sEl.textContent = tit;
-  tEl.textContent = txt;
-  bEl.textContent = sub;
+function clearHistory() {
+  if (history.length === 0) return;
+  if (confirm('Limpar todo o histórico?')) {
+    history = [];
+    renderHistory();
+  }
+}
+
+drawRoulette([], 0);
+carregarPresentes();
+</script>
+<script>
+// ─── Scanner de Presenca ───────────────────────────────────────────────
+var SC_URL = 'https://script.google.com/macros/s/AKfycby-q26kGx0JxVEjZxYmFifjRvldlI4kQ6dyfpCIt6DrXtXObteMBf3Piasw4_xYLm-c/exec';
+var SC_HIST_KEY = 'sp_hist';
+var scHistorico = [];
+var scUltimoCod = '';
+var scUltimoTs = 0;
+var scAguardandoConfirm = false;
+var scStream = null;
+var scDetectando = false;
+var scVideoEl = null;
+var scIntervalId = null;
+
+function scSetStatus(msg) { var el = document.getElementById('sc-status'); if(el) el.textContent = msg; }
+
+// voltarHomeDoScanner definida no script global acima
+
+async function scLigarCamera() {
+  document.getElementById('sc-btn-retry').style.display = 'none';
+  scSetStatus('Solicitando acesso a camera...');
+  scVideoEl = document.getElementById('sc-video');
+  try {
+    scStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } } });
+    scVideoEl.srcObject = scStream;
+    scVideoEl.onloadedmetadata = function() {
+      scVideoEl.play();
+      scSetStatus('Camera ativa - aponte para o codigo');
+      scIniciarDeteccao();
+    };
+  } catch(e) {
+    var msg = 'Erro ao acessar camera.';
+    if (e.name === 'NotAllowedError') msg = 'Permissao negada. Permita o acesso a camera.';
+    else if (e.name === 'NotFoundError') msg = 'Camera nao encontrada.';
+    else msg = 'Erro: ' + e.name + '. Use entrada manual.';
+    scSetStatus(msg);
+    document.getElementById('sc-btn-retry').style.display = 'block';
+  }
+}
+
+function scPararCamera() {
+  if (scStream) {
+    scStream.getTracks().forEach(function(t){ t.stop(); });
+    scStream = null;
+  }
+  scDetectando = false;
+  if (scVideoEl) { scVideoEl.srcObject = null; }
+}
+
+function scIniciarDeteccao() {
+  scDetectando = true;
+  if ('BarcodeDetector' in window) {
+    var detector = new BarcodeDetector({ formats: ['code_128','code_39','ean_13','ean_8','qr_code','upc_a'] });
+    scSetStatus('Camera ativa - aponte para o codigo');
+    (function loop() {
+      if (!scDetectando) return;
+      if (scVideoEl && scVideoEl.readyState >= 2) {
+        detector.detect(scVideoEl).then(function(barcodes) {
+          if (barcodes.length > 0) {
+            var cod = barcodes[0].rawValue.trim();
+            var agora = Date.now();
+            if (!scAguardandoConfirm && (cod !== scUltimoCod || agora - scUltimoTs > 4000)) {
+              scUltimoCod = cod; scUltimoTs = agora;
+              scPedirConfirmacao(cod);
+            }
+          }
+        }).catch(function(){});
+      }
+      if (scDetectando) requestAnimationFrame(loop);
+    })();
+  } else {
+    scSetStatus('Carregando leitor de codigos...');
+    var sc = document.createElement('script');
+    sc.src = 'https://cdn.jsdelivr.net/npm/@zxing/library@0.19.1/umd/index.min.js';
+    sc.onload = function() {
+      scSetStatus('Camera ativa - aponte para o codigo');
+      var hints = new Map();
+      hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, [ZXing.BarcodeFormat.CODE_128, ZXing.BarcodeFormat.CODE_39, ZXing.BarcodeFormat.EAN_13, ZXing.BarcodeFormat.QR_CODE]);
+      var reader = new ZXing.BrowserMultiFormatReader(hints);
+      reader.decodeFromVideoElement(scVideoEl, function(result, err) {
+        if (!scDetectando) return;
+        if (result) {
+          var cod = result.getText().trim();
+          var agora = Date.now();
+          if (!scAguardandoConfirm && (cod !== scUltimoCod || agora - scUltimoTs > 4000)) {
+            scUltimoCod = cod; scUltimoTs = agora;
+            scPedirConfirmacao(cod);
+          }
+        }
+      });
+    };
+    sc.onerror = function() { scSetStatus('Leitor nao carregou. Use entrada manual.'); };
+    document.head.appendChild(sc);
+  }
+}
+
+function scPedirConfirmacao(codigo) {
+  var num = parseInt(codigo);
+  if (isNaN(num) || num < 1 || num > 400) {
+    scMostrarRes('err', 'X', 'Codigo invalido', '"' + codigo + '" nao esta entre 1 e 400');
+    scVibrar('err'); return;
+  }
+  var jaLido = scHistorico.find(function(h){ return h.n === num && h.s === 'ok'; });
+  if (jaLido) {
+    scMostrarRes('avi', '!', 'No ' + num + ' - ja registrado', 'Lido as ' + jaLido.h);
+    scVibrar('avi'); return;
+  }
+  scAguardandoConfirm = true;
+  scVibrar('avi');
+  document.getElementById('sc-res-wrap').innerHTML = '';
+  var wrap = document.getElementById('sc-confirm-wrap');
+  wrap.style.display = 'block';
+  wrap.innerHTML =
+    '<div class="sc-confirm-box">' +
+      '<div class="sc-confirm-label">Codigo lido — confirmar presenca?</div>' +
+      '<div class="sc-confirm-num">No ' + num + '</div>' +
+      '<div class="sc-confirm-label" style="margin-bottom:14px">Verifique antes de confirmar</div>' +
+      '<div class="sc-confirm-btns">' +
+        '<button class="sc-btn sc-btn-cancel" onclick="scCancelar()">Cancelar</button>' +
+        '<button class="sc-btn sc-btn-v" onclick="scConfirmar(' + num + ')">Confirmar</button>' +
+      '</div>' +
+    '</div>';
+}
+
+function scCancelar() {
+  scAguardandoConfirm = false; scUltimoCod = '';
+  document.getElementById('sc-confirm-wrap').style.display = 'none';
+  document.getElementById('sc-confirm-wrap').innerHTML = '';
+  scSetStatus('Camera ativa - aponte para o codigo');
+}
+
+async function scConfirmar(num) {
+  document.getElementById('sc-confirm-wrap').style.display = 'none';
+  document.getElementById('sc-confirm-wrap').innerHTML = '';
+  scAguardandoConfirm = false;
+  await scRegistrarPresenca(num);
 }
 
 async function scRegistrarPresenca(num) {
-  scMostrarRes('avi', '...', 'Registrando No ' + num, 'Aguarde a validação...');
+  scMostrarRes('avi', '...', 'Registrando No ' + num, 'Aguarde');
   try {
-    const response = await fetch(SC_URL + '?numero=' + num, { method: 'GET' });
-    const data = await response.json();
-    
-    // Adiciona informação da mesa na mensagem se ela vier do Apps Script
-    var msgMesa = data.mesa ? ' | Mesa: ' + data.mesa : '';
-    
-    if (data.status === 'sucesso') {
-      var item = { n: num, h: scHora(), s: 'ok', m: data.mesa };
-      scHistorico.unshift(item);
-      scSalvar(); scRenderHist(); scAtualizarCnt();
-      scMostrarRes('ok', 'OK', 'No ' + num + ' - PRESENTE' + msgMesa, 'Registrado às ' + item.h);
-      scVibrar(true);
-    } else if (data.status === 'duplicado') {
-      scMostrarRes('err', 'JÁ LIDO', 'No ' + num + ' já está confirmado' + msgMesa, 'Tentativa duplicada');
-      scVibrar(false);
-    } else {
-      scMostrarRes('err', 'ERRO', data.mensagem || 'Erro desconhecido', 'Tente novamente');
-      scVibrar(false);
-    }
+    await fetch(SC_URL + '?numero=' + num, { method: 'GET', mode: 'no-cors' });
+    var item = { n: num, h: scHora(), s: 'ok' };
+    scHistorico.unshift(item);
+    scSalvar(); scRenderHist(); scAtualizarCnt();
+    scMostrarRes('ok', 'OK', 'No ' + num + ' - PRESENTE', 'Registrado as ' + item.h);
+    scVibrar('ok');
   } catch(e) {
-    scMostrarRes('err', 'FALHA', 'Erro na conexão de rede', 'Verifique a internet');
-    scVibrar(false);
+    var item2 = { n: num, h: scHora(), s: 'err' };
+    scHistorico.unshift(item2);
+    scSalvar(); scRenderHist();
+    scMostrarRes('err', 'X', 'Erro ao registrar No ' + num, 'Verifique a conexao');
+    scVibrar('err');
   }
+}
+
+function scRegistrarManual() {
+  var v = document.getElementById('sc-inp').value.trim();
+  if (!v) return;
+  document.getElementById('sc-inp').value = '';
+  scPedirConfirmacao(v);
+}
+document.addEventListener('DOMContentLoaded', function() {
+  var inp = document.getElementById('sc-inp');
+  if (inp) inp.addEventListener('keydown', function(e){ if(e.key==='Enter') scRegistrarManual(); });
+});
+
+function scMostrarRes(tipo, ic, titulo, sub) {
+  document.getElementById('sc-res-wrap').innerHTML =
+    '<div class="sc-res ' + tipo + '"><div class="sc-ri">' + ic + '</div><div class="sc-rt"><strong>' + titulo + '</strong><span>' + sub + '</span></div></div>';
 }
 
 function scRenderHist() {
   var el = document.getElementById('sc-hist');
   if (!el) return;
-  if (scHistorico.length === 0) { el.innerHTML = '<div class="sc-vazio">Nenhum código lido ainda</div>'; return; }
+  if (scHistorico.length === 0) { el.innerHTML = '<div class="sc-vazio">Nenhum codigo lido ainda</div>'; return; }
   el.innerHTML = scHistorico.slice(0,40).map(function(h){
-    var mesaText = h.m ? ' <span style="font-size:10px; color:#7dd4f5">(Mesa ' + h.m + ')</span>' : '';
-    return '<div class="sc-hi"><span class="sc-hn">No ' + h.n + mesaText + '</span><span class="sc-hh">' + h.h + '</span><span class="sc-hs ' + h.s + '\">' + (h.s==='ok'?'OK':'ERRO') + '</span></div>';
+    return '<div class="sc-hi"><span class="sc-hn">No ' + h.n + '</span><span class="sc-hh">' + h.h + '</span><span class="sc-hs ' + h.s + '">' + (h.s==='ok'?'OK':'ERRO') + '</span></div>';
   }).join('');
 }
 
 function scLimpar() {
-  if (!confirm('Limpar histórico local do scanner?')) return;
+  if (!confirm('Limpar historico?')) return;
   scHistorico = []; localStorage.removeItem(SC_HIST_KEY);
   scRenderHist(); scAtualizarCnt();
 }
@@ -362,164 +735,19 @@ function scAtualizarCnt() {
 }
 
 function scHora() { return new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit',second:'2-digit'}); }
-function scVibrar(sucesso) {
-  if (!("vibrate" in navigator)) return;
-  if (sucesso) navigator.vibrate([100]); else navigator.vibrate([100, 50, 100]);
+function scVibrar(t) {
+  if (!navigator.vibrate) return;
+  if (t==='ok') navigator.vibrate(80);
+  else if (t==='avi') navigator.vibrate([60,40,60]);
+  else navigator.vibrate([100,50,100]);
 }
 
-// ------------------------------------
-// MOTOR DO SORTEADOR (ROLETA NEON)
-// ------------------------------------
-var allData = [];
-var sortHistoryList = [];
-var canvas = document.getElementById("rouletteCanvas");
-var ctx = canvas.getContext("2d");
-var currentAngle = 0;
-var isSpinning = false;
-
-function drawRoulette(angle, highlightIndex = -1) {
-  ctx.clearRect(0,0,500,500);
-  var cx = 250, cy = 250, r = 230;
-  
-  // Fundo da roleta externa
-  ctx.beginPath(); ctx.arc(cx,cy,r+8,0,2*Math.PI); ctx.fillStyle="#090d16"; ctx.fill();
-  ctx.strokeStyle="#1a2a4a"; ctx.lineWidth=4; ctx.stroke();
-
-  var total = allData.length;
-  if (total === 0) {
-    ctx.save(); ctx.translate(cx,cy); ctx.rotate(angle);
-    // Estado vazio padrão estilizado
-    for(var i=0; i<8; i++) {
-      var a1 = (i/8)*2*Math.PI, a2 = ((i+1)/8)*2*Math.PI;
-      ctx.beginPath(); ctx.moveTo(0,0); ctx.arc(0,0,r,a1,a2); ctx.fillStyle=(i%2===0)?"#0e111a":"#131826"; ctx.fill();
-      ctx.strokeStyle="rgba(0,115,255,0.15)"; ctx.lineWidth=1; ctx.stroke();
-    }
-    ctx.restore();
-    return;
-  }
-
-  var slice = 2 * Math.PI / total;
-  ctx.save(); ctx.translate(cx,cy); ctx.rotate(angle);
-
-  for (var i = 0; i < total; i++) {
-    var startA = i * slice;
-    var endA = startA + slice;
-    
-    ctx.beginPath();
-    ctx.moveTo(0, 0);
-    ctx.arc(0, 0, r, startA, endA);
-    
-    if (highlightIndex === i) {
-      ctx.fillStyle = "#0073ff";
-    } else {
-      ctx.fillStyle = (i % 2 === 0) ? "#0e1524" : "#131e33";
-    }
-    ctx.fill();
-    
-    ctx.strokeStyle = "rgba(0, 115, 255, 0.2)";
-    ctx.lineWidth = 1;
-    ctx.stroke();
-
-    // Texto do Número
-    ctx.save();
-    ctx.rotate(startA + slice/2);
-    ctx.textAlign = "right";
-    ctx.textBaseline = "middle";
-    if (highlightIndex === i) ctx.fillStyle = "#fff"; else ctx.fillStyle = "rgba(200,216,240,0.6)";
-    ctx.font = total > 50 ? "bold 9px 'Exo 2'" : "bold 13px 'Exo 2'";
-    ctx.fillText("No " + allData[i], r - 15, 0);
-    ctx.restore();
-  }
-  ctx.restore();
-}
-
-async function carregarPresentes() {
-  var lbl = document.getElementById("totalCount");
-  var btn = document.getElementById("btnSortear");
-  lbl.textContent = "⌛";
-  btn.disabled = true;
-
-  try {
-    const r = await fetch(GS_URL + "?acao=presentes", { method: 'GET' });
-    const data = await r.json();
-    
-    // CORREÇÃO DA LEITURA: Lê data.numeros que vem do novo Apps Script estruturado
-    if (data.status === 'sucesso' && data.numeros && Array.isArray(data.numeros)) {
-      allData = data.numeros;
-    } else {
-      allData = [];
-    }
-
-    lbl.textContent = allData.length;
-    if (allData.length > 0) btn.disabled = false;
-    drawRoulette(currentAngle);
-  } catch(e) {
-    lbl.textContent = "0";
-    allData = [];
-    drawRoulette(currentAngle);
-  }
-}
-
-function iniciarSorteio() {
-  if (isSpinning || allData.length === 0) return;
-  isSpinning = true;
-  document.getElementById("btnSortear").disabled = true;
-
-  var total = allData.length;
-  var winnerIdx = Math.floor(Math.random() * total);
-  var sliceDeg = 360 / total;
-  
-  var targetAngleDeg = 270 - (winnerIdx * sliceDeg + sliceDeg/2);
-  if (targetAngleDeg < 0) targetAngleDeg += 360;
-  
-  var voltas = 6 + Math.floor(Math.random() * 4);
-  var finalAngleRad = (targetAngleDeg + voltas * 360) * Math.PI / 180;
-  
-  var start = null;
-  var duration = 4500; // Tempo da animação
-
-  function animar(timestamp) {
-    if (!start) start = timestamp;
-    var progress = timestamp - start;
-    var t = progress / duration;
-    
-    // Easing Out Cubic
-    var easeOut = 1 - Math.pow(1 - t, 3);
-    var current = easeOut * finalAngleRad;
-    
-    currentAngle = current % (2 * Math.PI);
-    drawRoulette(currentAngle);
-
-    if (progress < duration) {
-      requestAnimationFrame(animar);
-    } else {
-      isSpinning = false;
-      drawRoulette(currentAngle, winnerIdx);
-      exibirVencedor(allData[winnerIdx]);
-    }
-  }
-  requestAnimationFrame(animar);
-}
-
-function exibirVencedor(num) {
-  document.getElementById("winnerNum").textContent = "No " + num;
-  document.getElementById("winnerOverlay").style.display = "flex";
-  
-  sortHistoryList.unshift(num);
-  var hEl = document.getElementById("sortHistory");
-  hEl.innerHTML = sortHistoryList.map((n, idx) => {
-    return `<div class="hist-tag"><span class="hist-tag-idx">#${sortHistoryList.length - idx}</span> Nº ${n}</div>`;
-  }).join('');
-}
-
-function fecharVencedor() {
-  document.getElementById("winnerOverlay").style.display = "none";
-  carregarPresentes(); // Atualiza a roleta para a próxima rodada
-}
-
-// Inicializa a roleta limpa
-drawRoulette(0);
+// Init
+scHistorico = JSON.parse(localStorage.getItem(SC_HIST_KEY) || '[]');
+scRenderHist();
+scAtualizarCnt();
+scLigarCamera();
+scIntervalId = setInterval(scAtualizarCnt, 30000);
 </script>
-
 </body>
 </html>
