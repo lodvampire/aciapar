@@ -1580,22 +1580,21 @@ async function scRegistrarPresenca(num) {
   scMostrarRes('avi', '...', 'Registrando No ' + num, 'Aguarde');
   try {
     const response = await fetch(SC_URL + '?numero=' + num, { method: 'GET' });
-    let data = {};
-    try { data = await response.json(); } catch(e) {}
+    const data = await response.json(); // Certifique-se de que o script retorna o JSON
     
-    var mesaText = data.mesa ? ' | Mesa: ' + data.mesa : '';
-    var item = { n: num, h: scHora(), s: 'ok', m: data.mesa || '' };
+    // ALTERAÇÃO AQUI: Monta a mensagem incluindo a mesa se ela existir
+    var msgMesa = data.mesa ? ' | Mesa: ' + data.mesa : '';
+    
+    var item = { n: num, h: scHora(), s: 'ok', m: data.mesa }; // Guardando a mesa no histórico
     
     scHistorico.unshift(item);
     scSalvar(); scRenderHist(); scAtualizarCnt();
-    scMostrarRes('ok', 'OK', 'No ' + num + ' - PRESENTE' + mesaText, 'Registrado as ' + item.h);
+    
+    // Exibe o número e a mesa na tela de sucesso
+    scMostrarRes('ok', 'OK', 'No ' + num + ' - PRESENTE' + msgMesa, 'Registrado às ' + item.h);
     scVibrar('ok');
   } catch(e) {
-    var item2 = { n: num, h: scHora(), s: 'err', m: '' };
-    scHistorico.unshift(item2);
-    scSalvar(); scRenderHist();
-    scMostrarRes('err', 'X', 'Erro ao registrar No ' + num, 'Verifique a conexao');
-    scVibrar('err');
+    // ... (manter igual)
   }
 }
 
