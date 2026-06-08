@@ -1619,8 +1619,9 @@ function scRenderHist() {
   if (!el) return;
   if (scHistorico.length === 0) { el.innerHTML = '<div class="sc-vazio">Nenhum codigo lido ainda</div>'; return; }
   el.innerHTML = scHistorico.slice(0,40).map(function(h){
-    var mesaStr = h.m ? ' <span style="color:#7dd4f5">(Mesa ' + h.m + ')</span>' : '';
-    return '<div class="sc-hi"><span class="sc-hn">No ' + h.n + mesaStr + '</span><span class="sc-hh">' + h.h + '</span><span class="sc-hs ' + h.s + '">' + (h.s==='ok'?'OK':'ERRO') + '</span></div>';
+    // Adiciona a exibição da mesa na linha do histórico
+    var mesaText = h.m ? ' <span style="font-size:10px; color:#7dd4f5">(Mesa ' + h.m + ')</span>' : '';
+    return '<div class="sc-hi"><span class="sc-hn">No ' + h.n + mesaText + '</span><span class="sc-hh">' + h.h + '</span><span class="sc-hs ' + h.s + '">' + (h.s==='ok'?'OK':'ERRO') + '</span></div>';
   }).join('');
 }
 
