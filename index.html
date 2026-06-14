@@ -604,10 +604,12 @@ function scPedirConfirmacao(codigo) {
   document.getElementById('sc-res-wrap').innerHTML = '';
   var wrap = document.getElementById('sc-confirm-wrap');
   wrap.style.display = 'block';
+  var mesa = Math.ceil(num / 8);
   wrap.innerHTML =
     '<div class="sc-confirm-box">' +
       '<div class="sc-confirm-label">Codigo lido — confirmar presenca?</div>' +
       '<div class="sc-confirm-num">No ' + num + '</div>' +
+      '<div class="sc-confirm-label" style="margin-bottom:6px">&#127860; Mesa: No ' + num + ' &divide; 8 = <strong style="color:var(--sc-v);font-size:15px">MESA ' + mesa + '</strong></div>' +
       '<div class="sc-confirm-label" style="margin-bottom:14px">Verifique antes de confirmar</div>' +
       '<div class="sc-confirm-btns">' +
         '<button class="sc-btn sc-btn-cancel" onclick="scCancelar()">Cancelar</button>' +
@@ -634,10 +636,11 @@ async function scRegistrarPresenca(num) {
   scMostrarRes('avi', '...', 'Registrando No ' + num, 'Aguarde');
   try {
     await fetch(SC_URL + '?numero=' + num, { method: 'GET', mode: 'no-cors' });
-    var item = { n: num, h: scHora(), s: 'ok' };
+    var mesa = Math.ceil(num / 8);
+    var item = { n: num, h: scHora(), s: 'ok', m: mesa };
     scHistorico.unshift(item);
     scSalvar(); scRenderHist(); scAtualizarCnt();
-    scMostrarRes('ok', 'OK', 'No ' + num + ' - PRESENTE', 'Registrado as ' + item.h);
+    scMostrarRes('ok', 'OK', 'No ' + num + ' - PRESENTE', 'Registrado as ' + item.h + ' \u2022 Mesa ' + mesa);
     scVibrar('ok');
   } catch(e) {
     var item2 = { n: num, h: scHora(), s: 'err' };
@@ -673,7 +676,9 @@ function scRenderHist() {
     el.innerHTML = '<div class="sc-vazio">Nenhum codigo lido ainda</div>'; return;
   }
   el.innerHTML = scHistorico.slice(0, 40).map(function(h) {
+    var mesaTag = (h.s === 'ok' && h.m) ? '<span class="sc-hh" style="color:#7dd4f5">Mesa ' + h.m + '</span>' : '';
     return '<div class="sc-hi"><span class="sc-hn">No ' + h.n + '</span>' +
+           mesaTag +
            '<span class="sc-hh">' + h.h + '</span>' +
            '<span class="sc-hs ' + h.s + '">' + (h.s === 'ok' ? 'OK' : 'ERRO') + '</span></div>';
   }).join('');
